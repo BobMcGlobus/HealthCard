@@ -34,11 +34,14 @@ export function fmtDuration(value: number, unit?: string): string {
   if (u.startsWith('h')) minutes = value * 60;
   else if (u === 's' || u.startsWith('sec')) minutes = value / 60;
   else minutes = value;
-  const h = Math.floor(minutes / 60);
-  const m = Math.round(minutes % 60);
-  if (h <= 0) return `${m} min`;
-  if (m === 0) return `${h} h`;
-  return `${h} h ${m} min`;
+  const totalSec = Math.round(minutes * 60);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) return m ? `${h} h ${m} min` : `${h} h`;
+  // short durations (tooth brushing etc.): keep the seconds
+  if (m > 0) return s && m < 10 ? `${m} min ${s} s` : `${m} min`;
+  return `${s} s`;
 }
 
 /** "7:42" if today, "Gestern" if yesterday, otherwise a short date. */

@@ -20,6 +20,24 @@ const LABELS: Record<string, Record<string, string>> = {
     days: 'History (days)',
     columns: 'Columns',
     tiles: 'Show metrics as tiles',
+    layout: 'Layout',
+    layout_grid: 'Grid',
+    layout_carousel: 'Carousel (scrollable)',
+    background: 'Card background',
+    flush: 'Edge to edge (no outer padding)',
+    goal_type: 'Goal direction',
+    gt_atleast: 'Reach at least',
+    gt_atmost: 'Stay at/below (e.g. lose weight)',
+    tap_action: 'Tap action',
+    ta_popup: 'Popup (more info)',
+    ta_link: 'Link',
+    ta_none: 'Nothing',
+    link: 'Link (path or URL)',
+    max: 'Maximum (score)',
+    phase_deep: 'Deep sleep entity',
+    phase_light: 'Light sleep entity',
+    phase_rem: 'REM sleep entity',
+    phase_awake: 'Awake entity',
     type: 'Type',
     entity: 'Entity',
     entity2: 'Second entity (e.g. diastolic)',
@@ -56,6 +74,24 @@ const LABELS: Record<string, Record<string, string>> = {
     days: 'Verlauf (Tage)',
     columns: 'Spalten',
     tiles: 'Metriken als Kacheln anzeigen',
+    layout: 'Layout',
+    layout_grid: 'Raster',
+    layout_carousel: 'Slideshow (scrollbar)',
+    background: 'Kartenhintergrund',
+    flush: 'Randlos (kein Außenabstand)',
+    goal_type: 'Zielrichtung',
+    gt_atleast: 'Mindestens erreichen',
+    gt_atmost: 'Höchstens (z. B. abnehmen)',
+    tap_action: 'Klick-Aktion',
+    ta_popup: 'Popup (Details)',
+    ta_link: 'Link',
+    ta_none: 'Nichts',
+    link: 'Link (Pfad oder URL)',
+    max: 'Maximum (Score)',
+    phase_deep: 'Tiefschlaf-Entität',
+    phase_light: 'Leichtschlaf-Entität',
+    phase_rem: 'REM-Schlaf-Entität',
+    phase_awake: 'Wachphasen-Entität',
     type: 'Typ',
     entity: 'Entität',
     entity2: 'Zweite Entität (z. B. diastolisch)',
@@ -113,9 +149,23 @@ export class HealthCardEditor extends LitElement {
         schema: [
           { name: 'days', selector: { number: { min: 1, max: 60, mode: 'box' } } },
           { name: 'columns', selector: { number: { min: 1, max: 3, mode: 'box' } } },
+          {
+            name: 'layout',
+            selector: {
+              select: {
+                mode: 'dropdown',
+                options: [
+                  { value: 'grid', label: this._label('layout_grid') },
+                  { value: 'carousel', label: this._label('layout_carousel') },
+                ],
+              },
+            },
+          },
         ],
       },
       { name: 'tiles', selector: { boolean: {} } },
+      { name: 'background', selector: { boolean: {} } },
+      { name: 'flush', selector: { boolean: {} } },
     ];
   }
 
@@ -140,6 +190,14 @@ export class HealthCardEditor extends LitElement {
         : []),
       ...(MULTI_TYPES.includes(type) && entitiesEditable
         ? [{ name: 'entities', selector: { entity: { multiple: true } } }]
+        : []),
+      ...(type === 'sleep'
+        ? [
+            { name: 'phases_deep', selector: { entity: {} } },
+            { name: 'phases_light', selector: { entity: {} } },
+            { name: 'phases_rem', selector: { entity: {} } },
+            { name: 'phases_awake', selector: { entity: {} } },
+          ]
         : []),
       { name: 'secondary', selector: { entity: { multiple: true } } },
       {
@@ -169,11 +227,35 @@ export class HealthCardEditor extends LitElement {
             },
           },
           { name: 'days', selector: { number: { min: 1, max: 60, mode: 'box' } } },
-          { name: 'goal', selector: { number: { mode: 'box', step: 'any' } } },
+          { name: 'goal', selector: { text: {} } },
+          {
+            name: 'goal_type',
+            selector: {
+              select: {
+                mode: 'dropdown',
+                options: opts(['atleast', 'atmost'], 'gt'),
+              },
+            },
+          },
           {
             name: 'precision',
             selector: { number: { min: 0, max: 3, mode: 'box' } },
           },
+          ...(type === 'score'
+            ? [{ name: 'max', selector: { number: { min: 1, mode: 'box' } } }]
+            : []),
+          {
+            name: 'tap_action',
+            selector: {
+              select: {
+                mode: 'dropdown',
+                options: opts(['popup', 'link', 'none'], 'ta'),
+              },
+            },
+          },
+          ...(m.tap_action === 'link'
+            ? [{ name: 'link', selector: { text: {} } }]
+            : []),
           {
             name: 'aggregate',
             selector: {
@@ -203,7 +285,7 @@ export class HealthCardEditor extends LitElement {
     return html`
       <ha-form
         .hass=${this.hass}
-        .data=${{ tiles: true, ...this._config }}
+        .data=${{ tiles: true, background: true, layout: 'grid', ...this._config }}
         .schema=${this._topSchema()}
         .computeLabel=${(s: { name: string }) => this._label(s.name)}
         @value-changed=${this._topChanged}
@@ -261,7 +343,14 @@ export class HealthCardEditor extends LitElement {
           ? html`<div class="metric-body">
               <ha-form
                 .hass=${this.hass}
-                .data=${m}
+                .data=${{
+                  ...m,
+                  goal: m.goal != null ? String(m.goal) : undefined,
+                  phases_deep: m.phases?.deep,
+                  phases_light: m.phases?.light,
+                  phases_rem: m.phases?.rem,
+                  phases_awake: m.phases?.awake,
+                }}
                 .schema=${this._metricSchema(m)}
                 .computeLabel=${(s: { name: string }) => this._label(s.name)}
                 @value-changed=${(ev: CustomEvent) => this._metricChanged(ev, i)}
@@ -303,8 +392,26 @@ export class HealthCardEditor extends LitElement {
   private _metricChanged(ev: CustomEvent, index: number): void {
     ev.stopPropagation();
     if (!this._config) return;
+    const value = { ...(ev.detail.value as Record<string, unknown>) };
+
+    // Reassemble the flattened phases_* fields into the phases object
+    const phases: Record<string, string> = {};
+    for (const key of ['deep', 'light', 'rem', 'awake']) {
+      const v = value[`phases_${key}`];
+      delete value[`phases_${key}`];
+      if (typeof v === 'string' && v) phases[key] = v;
+    }
+    if (Object.keys(phases).length) value.phases = phases;
+    else delete value.phases;
+
+    // Goal is edited as text so it can hold an entity id; store numbers as numbers
+    if (typeof value.goal === 'string') {
+      const g = value.goal.trim();
+      if (/^-?\d+([.,]\d+)?$/.test(g)) value.goal = Number(g.replace(',', '.'));
+    }
+
     const metrics = [...this._config.metrics];
-    metrics[index] = this._clean(ev.detail.value as MetricConfig);
+    metrics[index] = this._clean(value as MetricConfig);
     this._emit({ ...this._config, metrics });
   }
 

@@ -25,18 +25,31 @@ export type MetricType =
   | 'nutrition'
   | 'water'
   | 'sleep'
+  | 'score'
+  | 'toothbrush'
   | 'custom';
 
 export type GraphType = 'line' | 'bar' | 'progress' | 'none';
 export type Aggregate = 'mean' | 'min' | 'max' | 'last' | 'sum';
 export type TrendMode = 'up_good' | 'down_good' | 'neutral' | 'none';
+/** atleast: goal reached at/above the value (steps); atmost: at/below (target weight) */
+export type GoalType = 'atleast' | 'atmost';
+export type TapAction = 'popup' | 'link' | 'none';
+
+export interface SleepPhases {
+  deep?: string;
+  light?: string;
+  rem?: string;
+  awake?: string;
+}
 
 export interface SeriesConfig {
   entity: string;
   name?: string;
   color?: string;
   unit?: string;
-  goal?: number;
+  /** Target: a number or an entity id */
+  goal?: number | string;
 }
 
 export interface MetricConfig {
@@ -57,7 +70,10 @@ export interface MetricConfig {
   unit?: string;
   days?: number;
   graph?: GraphType;
-  goal?: number;
+  /** Target: a number or an entity id (e.g. sensor.zielgewicht) */
+  goal?: number | string;
+  /** Goal direction: atleast (default) or atmost (e.g. losing weight) */
+  goal_type?: GoalType;
   precision?: number;
   aggregate?: Aggregate;
   trend?: TrendMode;
@@ -65,6 +81,14 @@ export interface MetricConfig {
   duration?: boolean;
   /** Read this attribute instead of the state */
   attribute?: string;
+  /** What a tap on the tile does (default: popup = more-info) */
+  tap_action?: TapAction;
+  /** Navigation path or URL for tap_action: link */
+  link?: string;
+  /** Score metrics: maximum value (default 100) */
+  max?: number;
+  /** Sleep metrics: phase entities for the stage breakdown */
+  phases?: SleepPhases;
 }
 
 export interface HealthCardConfig {
@@ -77,6 +101,12 @@ export interface HealthCardConfig {
   columns?: number;
   /** Render metrics as tinted tiles (default) or flat rows */
   tiles?: boolean;
+  /** grid (default) or carousel: horizontally scrollable tiles */
+  layout?: 'grid' | 'carousel';
+  /** false: remove the ha-card background/shadow (for use inside containers) */
+  background?: boolean;
+  /** true: no outer padding, tiles run edge to edge */
+  flush?: boolean;
   metrics: MetricConfig[];
 }
 

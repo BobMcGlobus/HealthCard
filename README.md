@@ -10,9 +10,15 @@ Trend-Pfeilen und Zielen. Vollständig Theme-kompatibel (Light & Dark).
 - 🎨 **Withings-Look**: Kacheln mit großen Werten, Icon-Chips, geglättete Verlaufskurven mit Ring-Punkten
 - 🌗 **100 % Theme-Support**: nutzt ausschließlich HA-Theme-Variablen (`--primary-text-color`, `--ha-card-background`, `--red-color`, …)
 - 📈 **Diagramme pro Metrik**: Linie, Balken, Fortschrittsbalken oder keins
-- 🎯 **Ziele**: „Ziel: 123 %" mit Haken bei Erreichen, Ziellinie im Balkendiagramm
+- 🎯 **Ziele**: Zahl **oder Sensor** (z. B. `sensor.zielgewicht`), Richtung wählbar (mindestens erreichen / höchstens — z. B. abnehmen), „Ziel: 94 %" mit Haken bei Erreichen, Ziellinie im Balkendiagramm
 - ↗️ **Trends**: automatische Trend-Pfeile aus der Recorder-History (steigend/fallend gut/schlecht konfigurierbar)
 - 🧩 **Multi-Serien**: z. B. Muskel- & Fettanteil in einem Chart, Makros als Fortschrittsbalken
+- 🛌 **Schlafphasen**: Segmentbalken + Aufschlüsselung (Tief/Leicht/REM/Wach)
+- 💯 **Gesamt-Score-Kachel** im Withings-Stil (Punktering, „96 von 100")
+- 🪥 **Zähneputzen-Preset** (z. B. Oral-B iO)
+- 🎠 **Carousel-Layout**: alle Kacheln horizontal scrollbar auf minimalem Platz
+- 🫥 **Einbettbar**: Kartenhintergrund abschaltbar + randlose Darstellung für Container-Karten
+- 🖱️ **Klick-Aktion pro Kachel**: Popup (More-Info), Link oder nichts
 - 🖱️ **Visueller Editor**: Metriken per UI hinzufügen, sortieren, konfigurieren
 - 🌍 Deutsch & Englisch (automatisch nach HA-Sprache)
 
@@ -37,8 +43,12 @@ title: Messungen
 subtitle: Letzte 7 Tage
 days: 7
 metrics:
+  - type: score
+    entity: sensor.gesundheitsscore
   - type: weight
     entity: sensor.gewicht
+    goal: sensor.zielgewicht     # Zahl oder Sensor
+    goal_type: atmost            # abnehmen: Ziel ist erreicht bei <= Zielwert
   - type: body_composition
     label: Fettabbau
     entities:
@@ -78,18 +88,39 @@ metrics:
         goal: 70
   - type: sleep
     entity: sensor.schlafdauer
+    phases:
+      deep: sensor.tiefschlaf
+      light: sensor.leichter_schlaf
+      rem: sensor.rem_schlaf
+      awake: sensor.aufwachdauer
+  - type: toothbrush
+    entity: sensor.oralb_putzzeit
+    goal: 120
+```
+
+Kompakt in einem Container (z. B. `vertical-stack`), scrollbar und ohne eigenen Hintergrund:
+
+```yaml
+type: custom:health-card
+layout: carousel     # alle Kacheln horizontal durchscrollen
+background: false    # ha-card-Hintergrund/-Schatten entfernen
+flush: true          # Kacheln bis an den Rand
+metrics: [...]
 ```
 
 ### Karten-Optionen
 
 | Option     | Typ     | Default | Beschreibung                                    |
 | ---------- | ------- | ------- | ----------------------------------------------- |
-| `title`    | string  | –       | Überschrift                                     |
-| `subtitle` | string  | –       | Untertitel                                      |
-| `days`     | number  | `7`     | History-Zeitraum in Tagen (für alle Metriken)   |
-| `columns`  | number  | `1`     | Kachel-Spalten (1–3)                            |
-| `tiles`    | boolean | `true`  | Metriken als Kacheln (`false` = flache Zeilen)  |
-| `metrics`  | list    | –       | **Pflicht.** Liste der Metriken (siehe unten)   |
+| `title`      | string  | –       | Überschrift                                                |
+| `subtitle`   | string  | –       | Untertitel                                                 |
+| `days`       | number  | `7`     | History-Zeitraum in Tagen (für alle Metriken)              |
+| `columns`    | number  | `1`     | Kachel-Spalten (1–3)                                       |
+| `layout`     | string  | `grid`  | `grid` oder `carousel` (horizontal scrollbar)              |
+| `tiles`      | boolean | `true`  | Metriken als Kacheln (`false` = flache Zeilen)             |
+| `background` | boolean | `true`  | `false`: Kartenhintergrund/-schatten entfernen (Container) |
+| `flush`      | boolean | `false` | `true`: kein Außenabstand, Kacheln bis zum Rand            |
+| `metrics`    | list    | –       | **Pflicht.** Liste der Metriken (siehe unten)              |
 
 ### Metrik-Optionen
 
@@ -107,7 +138,12 @@ metrics:
 | `unit`      | string | Einheit (Default: von der Entität)                                            |
 | `days`      | number | History-Zeitraum nur für diese Metrik                                         |
 | `graph`     | string | `line`, `bar`, `progress`, `none`                                             |
-| `goal`      | number | Zielwert → Status „Ziel: x %" bzw. Ziellinie/Fortschrittsbalken               |
+| `goal`      | number/string | Zielwert **oder Sensor-Entität** → „Ziel: x %", Ziellinie, Fortschrittsbalken |
+| `goal_type` | string | `atleast` (Default) oder `atmost` (Ziel erreicht bei ≤ Zielwert, z. B. Zielgewicht) |
+| `tap_action`| string | `popup` (Default, More-Info-Dialog), `link`, `none`                           |
+| `link`      | string | Dashboard-Pfad oder URL für `tap_action: link`                                |
+| `max`       | number | Nur `score`: Maximalwert (Default 100)                                        |
+| `phases`    | object | Nur `sleep`: `deep`/`light`/`rem`/`awake` Entitäten für die Phasen-Aufschlüsselung |
 | `precision` | number | Nachkommastellen                                                              |
 | `aggregate` | string | Tagesaggregation: `mean`, `min`, `max`, `sum`, `last`                         |
 | `trend`     | string | `up_good`, `down_good`, `neutral`, `none`                                     |
@@ -129,7 +165,11 @@ metrics:
 | `nutrition`        | `mdi:food-apple`     | green        | progress | max         | neutral     |
 | `water`            | `mdi:cup-water`      | light-blue   | progress | max         | up_good     |
 | `sleep`            | `mdi:sleep`          | deep-purple  | bar      | max         | up_good     |
+| `score`            | `mdi:heart-flash`    | amber        | Punktering | mean      | up_good     |
+| `toothbrush`       | `mdi:toothbrush-electric` | cyan    | bar      | max         | up_good     |
 | `custom`           | `mdi:chart-line`     | primary      | line     | mean        | neutral     |
+
+`weight` hat zusätzlich `goal_type: atmost` als Default (Zielgewicht = abnehmen).
 
 > **Hinweis zu `aggregate`:** Für Sensoren, die täglich auf 0 zurückspringen
 > (Schritte, Wasser, Kalorien), ist `max` der richtige Tageswert — nicht `sum`.

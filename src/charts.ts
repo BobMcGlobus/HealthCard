@@ -83,3 +83,37 @@ export function barChart(
     ${goalLine}${bars}
   </svg>`;
 }
+
+/**
+ * Withings-style confetti dot ring for the health score tile.
+ * Deterministic layout (seeded), theme colors with fallbacks.
+ */
+export function scoreRing(accent: string): TemplateResult {
+  const palette = [
+    'var(--amber-color, #FFC107)',
+    'var(--purple-color, #9C27B0)',
+    'var(--pink-color, #E91E63)',
+    'color-mix(in srgb, var(--primary-text-color) 16%, transparent)',
+    'color-mix(in srgb, var(--primary-text-color) 16%, transparent)',
+  ];
+  const rnd = (i: number) => Math.abs((Math.sin(i * 127.1) * 43758.5453) % 1);
+  const dots = [];
+  for (let ring = 0; ring < 2; ring++) {
+    const base = ring === 0 ? 74 : 88;
+    const count = ring === 0 ? 26 : 32;
+    for (let i = 0; i < count; i++) {
+      const a = (i / count) * Math.PI * 2 + rnd(i + ring * 100) * 0.18 - Math.PI / 2;
+      const r = base + (rnd(i * 3 + ring * 7) - 0.5) * 6;
+      const size = 2.4 + rnd(i * 7 + ring * 13) * 2.4;
+      const color = palette[Math.floor(rnd(i * 11 + ring * 29) * palette.length)];
+      dots.push(
+        svg`<circle cx=${100 + Math.cos(a) * r} cy=${100 + Math.sin(a) * r}
+          r=${size} fill=${color} opacity="0.75"/>`
+      );
+    }
+  }
+  return html`<svg class="scorering" viewBox="0 0 200 200" aria-hidden="true">
+    <circle cx="100" cy="100" r="62" fill="color-mix(in srgb, ${accent} 9%, transparent)" />
+    ${dots}
+  </svg>`;
+}

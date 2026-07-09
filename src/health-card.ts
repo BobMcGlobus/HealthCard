@@ -2,6 +2,7 @@ import { LitElement, html, css, nothing } from 'lit';
 import type { PropertyValues, TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import type {
+  GoalType,
   HealthCardConfig,
   HomeAssistant,
   HassEntity,
@@ -13,7 +14,7 @@ import { t } from './i18n';
 import { fmtDuration, fmtLastUpdated, fmtNumber, joinUnit } from './format';
 import { bucketDaily, fetchHistory, fillGaps, trendDelta } from './history';
 import type { HistoryMap } from './history';
-import { barChart, lineChart } from './charts';
+import { barChart, lineChart, scoreRing } from './charts';
 import './editor';
 
 const CARD_VERSION = '0.1.0';
@@ -86,8 +87,35 @@ export class HealthCard extends LitElement {
     for (const m of this._config?.metrics ?? []) {
       for (const s of this._series(m)) if (s.entity) ids.add(s.entity);
       for (const id of m.secondary ?? []) ids.add(id);
+      for (const id of Object.values(m.phases ?? {})) if (id) ids.add(id);
     }
     return [...ids].filter((id) => this.hass?.states[id]);
+  }
+
+  /** Goal can be a plain number, a numeric string or an entity id. */
+  private _resolveGoal(goal?: number | string): number {
+    if (typeof goal === 'number') return goal;
+    if (typeof goal !== 'string' || !goal) return NaN;
+    const st = this.hass.states[goal];
+    return st ? parseFloat(st.state) : parseFloat(goal);
+  }
+
+  private _handleTap(m: MetricConfig, entityId?: string): void {
+    const action = m.tap_action ?? 'popup';
+    if (action === 'none') return;
+    if (action === 'link') {
+      if (!m.link) return;
+      if (/^https?:\/\//.test(m.link)) {
+        window.open(m.link, '_blank', 'noopener');
+        return;
+      }
+      history.pushState(null, '', m.link);
+      this.dispatchEvent(
+        new Event('location-changed', { bubbles: true, composed: true })
+      );
+      return;
+    }
+    this._moreInfo(entityId);
   }
 
   private _maybeFetch(): void {
@@ -150,15 +178,23 @@ export class HealthCard extends LitElement {
   protected render(): TemplateResult | typeof nothing {
     if (!this.hass || !this._config) return nothing;
     const c = this._config;
+    const cardClass = [
+      c.tiles === false ? 'flat' : 'tiles',
+      c.background === false ? 'nobg' : '',
+      c.flush ? 'flush' : '',
+    ].join(' ');
     return html`
-      <ha-card class=${c.tiles === false ? 'flat' : 'tiles'}>
+      <ha-card class=${cardClass}>
         ${c.title
           ? html`<div class="header">
               <div class="title">${c.title}</div>
               ${c.subtitle ? html`<div class="subtitle">${c.subtitle}</div>` : nothing}
             </div>`
           : nothing}
-        <div class="metrics" style="--hc-columns:${c.columns ?? 1}">
+        <div
+          class="metrics ${c.layout === 'carousel' ? 'carousel' : ''}"
+          style="--hc-columns:${c.columns ?? 1}"
+        >
           ${c.metrics.map((m) => this._renderMetric(m))}
         </div>
       </ha-card>
@@ -171,7 +207,13 @@ export class HealthCard extends LitElement {
     const accent = resolveColor(m.color) ?? resolveColor(preset.color)!;
     const name = m.name ?? t(this.hass, type);
     const icon = m.icon ?? preset.icon;
-    const series = this._series(m);
+    const phaseIds = Object.values(m.phases ?? {}).filter(Boolean) as string[];
+    let series = this._series(m);
+    // Sleep without a total entity: borrow the first phase entity as primary
+    // (timestamp, tap target); value and chart are synthesized from the phases.
+    if (!series.length && type === 'sleep' && phaseIds.length) {
+      series = [{ entity: phaseIds[0] }];
+    }
     const primaryState = series[0]?.entity
       ? this.hass.states[series[0].entity]
       : undefined;
@@ -218,6 +260,33 @@ export class HealthCard extends LitElement {
       };
     });
 
+    // Sleep with phases but no total entity: value and chart = sum of the
+    // sleep phases (awake time excluded).
+    let valueOverride: number | undefined;
+    if (type === 'sleep' && !m.entity && m.phases) {
+      const sleepIds = (['deep', 'light', 'rem'] as const)
+        .map((k) => m.phases![k])
+        .filter(Boolean) as string[];
+      if (sleepIds.length) {
+        const perPhase = sleepIds.map((id) =>
+          bucketDaily(this._history[id] ?? [], days, aggregate)
+        );
+        const combined = Array.from({ length: days }, (_, i) => {
+          const vals = perPhase.map((b) => b[i]).filter(Number.isFinite);
+          return vals.length ? vals.reduce((a, b) => a + b, 0) : NaN;
+        });
+        data[0] = { ...data[0], buckets: combined, filled: fillGaps(combined) };
+        const current = sleepIds
+          .map((id) => this._numeric(this.hass.states[id]))
+          .filter(Number.isFinite);
+        if (current.length) valueOverride = current.reduce((a, b) => a + b, 0);
+      }
+    }
+
+    if (type === 'score') {
+      return this._renderScore(m, data[0], primaryState, accent, name, icon);
+    }
+
     // Multi-series metrics (entities: [...]) carry their info in the chips /
     // progress labels, so the big value, trend status and (for progress bars)
     // the chips are redundant there.
@@ -227,11 +296,12 @@ export class HealthCard extends LitElement {
     const showStatus = !multi;
     const stack = multi && graph === 'progress';
 
+    const goalType = m.goal_type ?? preset.goalType ?? 'atleast';
     return html`
       <div
-        class="metric"
+        class="metric ${(m.tap_action ?? 'popup') === 'none' ? 'noclick' : ''}"
         style="--hc-accent:${accent}"
-        @click=${() => this._moreInfo(series[0].entity)}
+        @click=${() => this._handleTap(m, series[0].entity)}
       >
         <div class="head">
           <div class="iconchip"><ha-icon .icon=${icon}></ha-icon></div>
@@ -242,12 +312,30 @@ export class HealthCard extends LitElement {
           ${showValue || showChips || showStatus || m.secondary?.length
             ? html`<div class="info">
                 ${showValue
-                  ? this._renderValue(m, type, series, primaryState, unit, precision, preset.duration)
+                  ? this._renderValue(
+                      m,
+                      type,
+                      data,
+                      primaryState,
+                      unit,
+                      precision,
+                      preset.duration,
+                      valueOverride
+                    )
                   : nothing}
                 ${showChips ? this._renderSeriesChips(data, precision, trendMode) : nothing}
                 ${this._renderSecondary(m)}
                 ${showStatus
-                  ? this._renderStatus(m, data[0], primaryState, unit, precision, trendMode)
+                  ? this._renderStatus(
+                      m,
+                      data[0],
+                      primaryState,
+                      unit,
+                      precision,
+                      trendMode,
+                      goalType,
+                      valueOverride
+                    )
                   : nothing}
               </div>`
             : nothing}
@@ -255,6 +343,78 @@ export class HealthCard extends LitElement {
             ${this._renderChart(m, graph, data, unit, precision)}
           </div>
         </div>
+        ${type === 'sleep' && m.phases ? this._renderSleepPhases(m) : nothing}
+      </div>
+    `;
+  }
+
+  private _renderScore(
+    m: MetricConfig,
+    primary: SeriesData,
+    primaryState: HassEntity,
+    accent: string,
+    name: string,
+    icon: string
+  ): TemplateResult {
+    const v = this._numeric(primaryState, m.attribute);
+    const max = m.max ?? 100;
+    const trendMode = m.trend ?? 'up_good';
+    return html`
+      <div
+        class="metric score-metric ${(m.tap_action ?? 'popup') === 'none' ? 'noclick' : ''}"
+        style="--hc-accent:${accent}"
+        @click=${() => this._handleTap(m, primaryState.entity_id)}
+      >
+        <div class="head">
+          <div class="iconchip"><ha-icon .icon=${icon}></ha-icon></div>
+          <div class="name">${name}</div>
+          <div class="time">${fmtLastUpdated(this.hass, primaryState.last_updated)}</div>
+        </div>
+        <div class="scorewrap">
+          ${scoreRing(accent)}
+          <div class="scoreinner">
+            <div class="scorenum">${fmtNumber(this.hass, v, m.precision ?? 0)}</div>
+            <div class="scoremax">${t(this.hass, 'of')} ${max}</div>
+          </div>
+        </div>
+        <div class="score-status">
+          ${this._renderStatus(m, primary, primaryState, '', 0, trendMode, 'atleast')}
+        </div>
+      </div>
+    `;
+  }
+
+  private _renderSleepPhases(m: MetricConfig): TemplateResult | typeof nothing {
+    const COLORS: Record<string, string> = {
+      deep: 'var(--deep-purple-color, #673AB7)',
+      light: 'var(--light-blue-color, #03A9F4)',
+      rem: 'var(--cyan-color, #00BCD4)',
+      awake: 'var(--amber-color, #FFC107)',
+    };
+    const items = (['deep', 'light', 'rem', 'awake'] as const)
+      .map((key) => {
+        const id = m.phases?.[key];
+        const st = id ? this.hass.states[id] : undefined;
+        const v = this._numeric(st);
+        if (!Number.isFinite(v)) return undefined;
+        return { key, v, unit: st?.attributes.unit_of_measurement, color: COLORS[key] };
+      })
+      .filter((p): p is NonNullable<typeof p> => !!p);
+    if (!items.length) return nothing;
+    return html`
+      <div class="segbar">
+        ${items.map(
+          (p) => html`<div class="seg" style="flex-grow:${p.v};background:${p.color}"></div>`
+        )}
+      </div>
+      <div class="phases">
+        ${items.map(
+          (p) => html`<div class="phase">
+            <span class="phasedot" style="background:${p.color}"></span>
+            <span>${t(this.hass, `phase_${p.key}`)}</span>
+            <span class="phaseval">${fmtDuration(p.v, p.unit)}</span>
+          </div>`
+        )}
       </div>
     `;
   }
@@ -262,30 +422,50 @@ export class HealthCard extends LitElement {
   private _renderValue(
     m: MetricConfig,
     type: string,
-    series: SeriesConfig[],
+    data: SeriesData[],
     primaryState: HassEntity,
     unit: string,
     precision: number | undefined,
-    presetDuration: boolean | undefined
+    presetDuration: boolean | undefined,
+    valueOverride?: number
   ): TemplateResult {
     if (m.label) return html`<div class="value">${m.label}</div>`;
 
-    if (type === 'blood_pressure' && series.length >= 2) {
+    if (type === 'blood_pressure' && data.length >= 2) {
       const sys = this._numeric(primaryState, m.attribute);
-      const dia = this._numeric(this.hass.states[series[1].entity]);
+      const dia = this._numeric(this.hass.states[data[1].entity]);
       return html`<div class="value">
-        ${fmtNumber(this.hass, sys, 0)}/${fmtNumber(this.hass, dia, 0)}
-        <span class="unit">${unit}</span>
-      </div>`;
+          ${fmtNumber(this.hass, sys, 0)}/${fmtNumber(this.hass, dia, 0)}
+          <span class="unit">${unit}</span>
+        </div>
+        <div class="bplabels">
+          <span class="bpitem">
+            <span class="bpdot" style="background:${data[0].colorResolved}"></span>SYS
+            ${fmtNumber(this.hass, sys, 0)}
+          </span>
+          <span class="bpitem">
+            <span class="bpdot" style="background:${data[1].colorResolved}"></span>DIA
+            ${fmtNumber(this.hass, dia, 0)}
+          </span>
+        </div>`;
     }
 
-    const v = this._numeric(primaryState, m.attribute);
+    const v = valueOverride ?? this._numeric(primaryState, m.attribute);
     if (!Number.isFinite(v)) {
       return html`<div class="value">${primaryState.state}</div>`;
     }
     if (m.duration ?? presetDuration) {
+      const phaseUnit = Object.values(m.phases ?? {})
+        .map((id) => (id ? this.hass.states[id]?.attributes.unit_of_measurement : undefined))
+        .find(Boolean);
       return html`<div class="value">
-        ${fmtDuration(v, m.unit ?? primaryState.attributes.unit_of_measurement)}
+        ${fmtDuration(
+          v,
+          m.unit ??
+            (valueOverride !== undefined
+              ? phaseUnit
+              : primaryState.attributes.unit_of_measurement)
+        )}
       </div>`;
     }
     return html`<div class="value">
@@ -349,12 +529,17 @@ export class HealthCard extends LitElement {
     primaryState: HassEntity,
     unit: string,
     precision: number | undefined,
-    trendMode: string
+    trendMode: string,
+    goalType: GoalType = 'atleast',
+    valueOverride?: number
   ): TemplateResult | typeof nothing {
-    const v = this._numeric(primaryState, m.attribute);
+    const v = valueOverride ?? this._numeric(primaryState, m.attribute);
+    const goal = this._resolveGoal(m.goal);
 
-    if (Number.isFinite(m.goal as number) && Number.isFinite(v)) {
-      const pct = Math.round((v / m.goal!) * 100);
+    if (Number.isFinite(goal) && goal > 0 && Number.isFinite(v)) {
+      // atmost (e.g. target weight): 100 % when at/below the goal
+      const raw = goalType === 'atmost' ? (goal / v) * 100 : (v / goal) * 100;
+      const pct = Math.round(Math.min(Math.max(raw, 0), 999));
       const reached = pct >= 100;
       return html`<div class="status ${reached ? 'good' : ''}">
         <ha-icon .icon=${reached ? 'mdi:check-circle' : 'mdi:flag-outline'}></ha-icon>
@@ -402,14 +587,19 @@ export class HealthCard extends LitElement {
       )}`;
     }
     if (graph === 'bar') {
-      return html`${barChart(data[0].buckets, data[0].colorResolved, m.goal)}`;
+      const goal = this._resolveGoal(m.goal);
+      return html`${barChart(
+        data[0].buckets,
+        data[0].colorResolved,
+        Number.isFinite(goal) ? goal : undefined
+      )}`;
     }
     if (graph === 'progress') {
       const bars = data.map((s) => {
         const st = this.hass.states[s.entity];
         const v = this._numeric(st);
-        const goal = s.goal ?? m.goal;
-        if (!Number.isFinite(v) || !goal) return nothing;
+        const goal = this._resolveGoal(s.goal ?? m.goal);
+        if (!Number.isFinite(v) || !Number.isFinite(goal) || goal <= 0) return nothing;
         const pct = Math.max(0, Math.min((v / goal) * 100, 100));
         const sUnit = s.unit ?? st?.attributes.unit_of_measurement ?? unit;
         return html`<div class="pbar">
@@ -442,6 +632,17 @@ export class HealthCard extends LitElement {
       --hc-tile-bg: transparent;
       --hc-dot-fill: var(--hc-card-bg);
     }
+    ha-card.nobg {
+      background: none;
+      box-shadow: none;
+      border: none;
+    }
+    ha-card.flush {
+      padding: 0;
+    }
+    ha-card.flush .header {
+      padding: 0 0 14px 0;
+    }
     .header {
       padding: 4px 4px 16px 4px;
     }
@@ -464,6 +665,20 @@ export class HealthCard extends LitElement {
     ha-card.flat .metrics {
       gap: 4px;
     }
+    .metrics.carousel {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .metrics.carousel::-webkit-scrollbar {
+      display: none;
+    }
+    .metrics.carousel > .metric {
+      flex: 0 0 min(85%, 320px);
+      scroll-snap-align: center;
+    }
     .metric {
       background: var(--hc-tile-bg);
       border-radius: var(--hc-tile-radius, 16px);
@@ -476,6 +691,12 @@ export class HealthCard extends LitElement {
     }
     .metric:hover {
       background: color-mix(in srgb, var(--primary-text-color) 7%, var(--hc-card-bg));
+    }
+    .metric.noclick {
+      cursor: default;
+    }
+    .metric.noclick:hover {
+      background: var(--hc-tile-bg);
     }
     .head {
       display: flex;
@@ -634,6 +855,95 @@ export class HealthCard extends LitElement {
       font-size: 13px;
       color: var(--error-color, #db4437);
       word-break: break-all;
+    }
+    .bplabels {
+      display: flex;
+      gap: 12px;
+      margin-top: 2px;
+    }
+    .bpitem {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      color: var(--secondary-text-color);
+    }
+    .bpdot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex: none;
+    }
+    .segbar {
+      display: flex;
+      gap: 2px;
+      height: 10px;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 2px;
+    }
+    .seg {
+      min-width: 4px;
+      border-radius: 2px;
+    }
+    .phases {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 14px;
+      margin-top: 6px;
+    }
+    .phase {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--secondary-text-color);
+    }
+    .phasedot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex: none;
+    }
+    .phaseval {
+      color: var(--primary-text-color);
+      font-weight: 600;
+    }
+    .scorewrap {
+      display: grid;
+      place-items: center;
+      width: min(210px, 100%);
+      margin: 0 auto;
+    }
+    .scorewrap > * {
+      grid-area: 1 / 1;
+    }
+    .scorering {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .scoreinner {
+      text-align: center;
+    }
+    .scorenum {
+      font-size: 46px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1;
+      color: var(--primary-text-color);
+    }
+    .scoremax {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--secondary-text-color);
+      margin-top: 2px;
+    }
+    .score-status {
+      display: flex;
+      justify-content: center;
     }
   `;
 }

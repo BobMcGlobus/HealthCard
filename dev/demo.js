@@ -1,4 +1,4 @@
-﻿// Dev-only harness: stubs ha-card / ha-icon and a minimal `hass` object
+// Dev-only harness: stubs ha-card / ha-icon and a minimal `hass` object
 // so the card can be developed outside Home Assistant.
 import '../src/health-card.ts';
 
@@ -89,7 +89,8 @@ function entity(id, state, attrs) {
 }
 
 const states = {
-  'sensor.gewicht': entity('sensor.gewicht', 71.1, { unit_of_measurement: 'kg', friendly_name: 'Gewicht' }),
+  'sensor.gewicht': entity('sensor.gewicht', 90.2, { unit_of_measurement: 'kg', friendly_name: 'Gewicht' }),
+  'sensor.zielgewicht': entity('sensor.zielgewicht', 85, { unit_of_measurement: 'kg', friendly_name: 'Zielgewicht' }),
   'sensor.puls': entity('sensor.puls', 69, { unit_of_measurement: 'bpm', friendly_name: 'Puls' }),
   'sensor.blutdruck_sys': entity('sensor.blutdruck_sys', 121, { unit_of_measurement: 'mmHg', friendly_name: 'Systolisch' }),
   'sensor.blutdruck_dia': entity('sensor.blutdruck_dia', 79, { unit_of_measurement: 'mmHg', friendly_name: 'Diastolisch' }),
@@ -97,6 +98,7 @@ const states = {
   'sensor.muskelmasse': entity('sensor.muskelmasse', 85.1, { unit_of_measurement: '%', friendly_name: 'Muskeln' }),
   'sensor.fettanteil': entity('sensor.fettanteil', 12.4, { unit_of_measurement: '%', friendly_name: 'Fett' }),
   'sensor.schritte': entity('sensor.schritte', 12345, { friendly_name: 'Schritte' }),
+  'sensor.schrittziel': entity('sensor.schrittziel', 7000, { unit_of_measurement: 'steps', friendly_name: 'Schrittziel' }),
   'sensor.sport_minuten': entity('sensor.sport_minuten', 49, { unit_of_measurement: 'min', friendly_name: 'Sport' }),
   'sensor.sport_distanz': entity('sensor.sport_distanz', 10.04, { unit_of_measurement: 'km', friendly_name: 'Distanz' }),
   'sensor.sport_kalorien': entity('sensor.sport_kalorien', 621, { unit_of_measurement: 'kcal', friendly_name: 'Kalorien' }),
@@ -105,11 +107,17 @@ const states = {
   'sensor.kohlenhydrate': entity('sensor.kohlenhydrate', 180, { unit_of_measurement: 'g', friendly_name: 'Kohlenhydrate' }),
   'sensor.fett_g': entity('sensor.fett_g', 55, { unit_of_measurement: 'g', friendly_name: 'Fett' }),
   'sensor.schlaf': entity('sensor.schlaf', 452, { unit_of_measurement: 'min', friendly_name: 'Schlaf' }),
+  'sensor.tiefschlaf': entity('sensor.tiefschlaf', 92, { unit_of_measurement: 'min', friendly_name: 'Tiefschlaf' }),
+  'sensor.leichter_schlaf': entity('sensor.leichter_schlaf', 210, { unit_of_measurement: 'min', friendly_name: 'Leichter Schlaf' }),
+  'sensor.rem_schlaf': entity('sensor.rem_schlaf', 105, { unit_of_measurement: 'min', friendly_name: 'REM-Schlaf' }),
+  'sensor.wachphasen': entity('sensor.wachphasen', 45, { unit_of_measurement: 'min', friendly_name: 'Wach' }),
+  'sensor.gesundheitsscore': entity('sensor.gesundheitsscore', 96, { friendly_name: 'Gesundheitsscore' }),
+  'sensor.zahnputzzeit': entity('sensor.zahnputzzeit', 135, { unit_of_measurement: 's', friendly_name: 'Zahnputzzeit' }),
 };
 
 // value profiles for fake history: [base, dailyTrend, jitter]
 const profiles = {
-  'sensor.gewicht': [72.1, -0.16, 0.15],
+  'sensor.gewicht': [91.2, -0.16, 0.15],
   'sensor.puls': [70, -0.2, 3],
   'sensor.blutdruck_sys': [123, -0.4, 3],
   'sensor.blutdruck_dia': [81, -0.3, 2],
@@ -120,6 +128,11 @@ const profiles = {
   'sensor.sport_minuten': [35, 2, 20],
   'sensor.wasser': [1800, 0, 500],
   'sensor.schlaf': [430, 2, 45],
+  'sensor.tiefschlaf': [90, 0.5, 15],
+  'sensor.leichter_schlaf': [200, 1, 25],
+  'sensor.rem_schlaf': [100, 0.5, 15],
+  'sensor.gesundheitsscore': [92, 0.6, 2],
+  'sensor.zahnputzzeit': [115, 2, 50],
 };
 
 let seed = 42;
@@ -162,7 +175,8 @@ const config = {
   title: 'Messungen',
   subtitle: 'Letzte 7 Tage',
   metrics: [
-    { type: 'weight', entity: 'sensor.gewicht' },
+    { type: 'score', entity: 'sensor.gesundheitsscore' },
+    { type: 'weight', entity: 'sensor.gewicht', goal: 'sensor.zielgewicht' },
     {
       type: 'body_composition',
       label: 'Fettabbau',
@@ -171,7 +185,7 @@ const config = {
         { entity: 'sensor.fettanteil', name: 'Fett' },
       ],
     },
-    { type: 'steps', entity: 'sensor.schritte', goal: 10000 },
+    { type: 'steps', entity: 'sensor.schritte', goal: 'sensor.schrittziel' },
     { type: 'heart_rate', entity: 'sensor.puls' },
     { type: 'blood_pressure', entity: 'sensor.blutdruck_sys', entity2: 'sensor.blutdruck_dia' },
     { type: 'temperature', entity: 'sensor.koerpertemperatur' },
@@ -190,20 +204,44 @@ const config = {
         { entity: 'sensor.fett_g', name: 'Fett', goal: 70 },
       ],
     },
-    { type: 'sleep', entity: 'sensor.schlaf' },
+    {
+      type: 'sleep',
+      entity: 'sensor.schlaf',
+      phases: {
+        deep: 'sensor.tiefschlaf',
+        light: 'sensor.leichter_schlaf',
+        rem: 'sensor.rem_schlaf',
+        awake: 'sensor.wachphasen',
+      },
+    },
+    { type: 'toothbrush', entity: 'sensor.zahnputzzeit', goal: 120 },
   ],
 };
 
 const card = document.createElement('health-card');
-card.setConfig(config);
+let current = { ...config };
+card.setConfig(current);
 card.hass = hass;
 document.getElementById('mount').appendChild(card);
+
+const apply = (patch) => {
+  current = { ...current, ...patch };
+  card.setConfig(current);
+};
 
 document.getElementById('theme').addEventListener('click', () => {
   document.body.classList.toggle('dark');
 });
 document.getElementById('width').addEventListener('click', () => {
   const w = document.getElementById('wrap');
-  w.style.maxWidth = w.style.maxWidth === '900px' ? '420px' : '900px';
-  card.setConfig({ ...config, columns: w.style.maxWidth === '900px' ? 2 : 1 });
+  const wide = w.style.maxWidth !== '900px';
+  w.style.maxWidth = wide ? '900px' : '420px';
+  apply({ columns: wide ? 2 : 1 });
+});
+document.getElementById('layout').addEventListener('click', () => {
+  apply({ layout: current.layout === 'carousel' ? 'grid' : 'carousel', columns: 1 });
+});
+document.getElementById('bg').addEventListener('click', () => {
+  const off = current.background !== false;
+  apply({ background: off ? false : true, flush: off });
 });

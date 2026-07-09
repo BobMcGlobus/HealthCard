@@ -1,4 +1,4 @@
-import type { Aggregate, GraphType, MetricType, TrendMode } from './types';
+import type { Aggregate, GoalType, GraphType, MetricType, TrendMode } from './types';
 
 export interface MetricPreset {
   icon: string;
@@ -9,6 +9,7 @@ export interface MetricPreset {
   trend: TrendMode;
   duration?: boolean;
   precision?: number;
+  goalType?: GoalType;
 }
 
 /**
@@ -55,6 +56,7 @@ export const PRESETS: Record<MetricType, MetricPreset> = {
     aggregate: 'mean',
     trend: 'down_good',
     precision: 1,
+    goalType: 'atmost',
   },
   heart_rate: {
     icon: 'mdi:heart-pulse',
@@ -143,6 +145,23 @@ export const PRESETS: Record<MetricType, MetricPreset> = {
     trend: 'up_good',
     duration: true,
     precision: 1,
+  },
+  score: {
+    icon: 'mdi:heart-flash',
+    color: 'amber',
+    graph: 'none',
+    aggregate: 'mean',
+    trend: 'up_good',
+    precision: 0,
+  },
+  toothbrush: {
+    icon: 'mdi:toothbrush-electric',
+    color: 'cyan',
+    graph: 'bar',
+    aggregate: 'max',
+    trend: 'up_good',
+    duration: true,
+    precision: 0,
   },
   custom: {
     icon: 'mdi:chart-line',
