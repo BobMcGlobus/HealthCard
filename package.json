@@ -1,0 +1,19 @@
+{
+  "name": "health-card",
+  "version": "0.1.0",
+  "description": "Withings-style, fully themeable health dashboard card for Home Assistant",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "build": "vite build",
+    "watch": "vite build --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "lit": "^3.1.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "vite": "^5.2.11"
+  }
+}
