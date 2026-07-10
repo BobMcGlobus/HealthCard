@@ -6,6 +6,14 @@ export interface LineSeries {
   color: string;
 }
 
+export interface AxisMark {
+  /** bucket index */
+  i: number;
+  label?: string;
+  /** draw a vertical gridline */
+  line?: boolean;
+}
+
 export interface ChartOpts {
   /** viewBox width (default 220) */
   w?: number;
@@ -13,11 +21,24 @@ export interface ChartOpts {
   h?: number;
   /** draw ring dots on line charts (default true) */
   dots?: boolean;
+  /** y tick formatter; enables horizontal gridlines with labels */
+  yFmt?: (v: number) => string;
+  /** x-axis marks (vertical lines / labels at bucket indices) */
+  xMarks?: AxisMark[];
 }
 
 const W = 220;
 const H = 60;
 const PAD = 7;
+const GRID = 'color-mix(in srgb, var(--primary-text-color) 14%, transparent)';
+
+function axisGeometry(opts: ChartOpts, ticks: number[]): { padL: number; padB: number } {
+  const padL = opts.yFmt
+    ? Math.max(26, ...ticks.map((v) => opts.yFmt!(v).length * 5.6 + 10))
+    : PAD;
+  const padB = opts.xMarks?.some((m) => m.label) ? 15 : PAD;
+  return { padL, padB };
+}
 
 function scale(all: number[]): { lo: number; hi: number } {
   const finite = all.filter(Number.isFinite);
@@ -42,8 +63,32 @@ export function lineChart(
   if (!drawable.length) return nothing;
   const { lo, hi } = scale(drawable.flatMap((s) => s.values));
   const n = Math.max(...drawable.map((s) => s.values.length));
-  const x = (i: number) => PAD + (i * (w - 2 * PAD)) / Math.max(n - 1, 1);
-  const y = (v: number) => h - PAD - ((v - lo) / (hi - lo)) * (h - 2 * PAD);
+  const ticks = opts.yFmt ? [hi - (hi - lo) * 0.08, (lo + hi) / 2, lo + (hi - lo) * 0.08] : [];
+  const { padL, padB } = axisGeometry(opts, ticks);
+  const x = (i: number) => padL + (i * (w - padL - PAD)) / Math.max(n - 1, 1);
+  const y = (v: number) => h - padB - ((v - lo) / (hi - lo)) * (h - padB - PAD);
+
+  const grid = ticks.map(
+    (v) => svg`
+      <line x1=${padL} x2=${w - PAD} y1=${y(v)} y2=${y(v)}
+        stroke=${GRID} stroke-width="1" stroke-dasharray="2 3"/>
+      <text class="axis" x=${padL - 5} y=${y(v)} text-anchor="end"
+        dominant-baseline="middle">${opts.yFmt!(v)}</text>`
+  );
+  const marks = (opts.xMarks ?? []).map(
+    (mk) => svg`
+      ${
+        mk.line
+          ? svg`<line x1=${x(mk.i)} x2=${x(mk.i)} y1=${PAD} y2=${h - padB}
+              stroke=${GRID} stroke-width="1"/>`
+          : nothing
+      }
+      ${
+        mk.label
+          ? svg`<text class="axis" x=${x(mk.i)} y=${h - 3} text-anchor="middle">${mk.label}</text>`
+          : nothing
+      }`
+  );
 
   const parts = drawable.map((s) => {
     const pts = s.values
@@ -69,7 +114,9 @@ export function lineChart(
     `;
   });
 
-  return html`<svg class="chart" viewBox="0 0 ${w} ${h}" aria-hidden="true">${parts}</svg>`;
+  return html`<svg class="chart" viewBox="0 0 ${w} ${h}" aria-hidden="true">
+    ${grid}${marks}${parts}
+  </svg>`;
 }
 
 /** Rounded daily bars with an optional dashed goal line. */
@@ -85,24 +132,49 @@ export function barChart(
   const vals = values.map((v) => (Number.isFinite(v) && v > 0 ? v : 0));
   const max = Math.max(...vals, goal ?? 0) || 1;
   const n = vals.length;
-  const slot = (w - 2 * PAD) / n;
+  const ticks = opts.yFmt ? [max, max / 2] : [];
+  const { padL, padB } = axisGeometry(opts, ticks);
+  const slot = (w - padL - PAD) / n;
   const bw = Math.min(slot * 0.55, 14);
-  const y = (v: number) => (v / max) * (h - 2 * PAD);
+  const y = (v: number) => (v / max) * (h - padB - PAD);
+
+  const grid = ticks.map(
+    (v) => svg`
+      <line x1=${padL} x2=${w - PAD} y1=${h - padB - y(v)} y2=${h - padB - y(v)}
+        stroke=${GRID} stroke-width="1" stroke-dasharray="2 3"/>
+      <text class="axis" x=${padL - 5} y=${h - padB - y(v)} text-anchor="end"
+        dominant-baseline="middle">${opts.yFmt!(v)}</text>`
+  );
+  const marks = (opts.xMarks ?? []).map((mk) => {
+    const mx = padL + mk.i * slot + slot / 2;
+    return svg`
+      ${
+        mk.line
+          ? svg`<line x1=${mx} x2=${mx} y1=${PAD} y2=${h - padB}
+              stroke=${GRID} stroke-width="1"/>`
+          : nothing
+      }
+      ${
+        mk.label
+          ? svg`<text class="axis" x=${mx} y=${h - 3} text-anchor="middle">${mk.label}</text>`
+          : nothing
+      }`;
+  });
 
   const bars = vals.map((v, i) => {
     const bh = Math.max(y(v), v > 0 ? 3 : 1.5);
-    const bx = PAD + i * slot + (slot - bw) / 2;
-    return svg`<rect x=${bx} y=${h - PAD - bh} width=${bw} height=${bh}
+    const bx = padL + i * slot + (slot - bw) / 2;
+    return svg`<rect x=${bx} y=${h - padB - bh} width=${bw} height=${bh}
       rx=${Math.min(bw / 2, 4)} fill=${color} opacity=${v > 0 ? 1 : 0.25}/>`;
   });
 
   const goalLine = Number.isFinite(goal as number)
-    ? svg`<line x1=${PAD} x2=${w - PAD} y1=${h - PAD - y(goal!)} y2=${h - PAD - y(goal!)}
+    ? svg`<line x1=${padL} x2=${w - PAD} y1=${h - padB - y(goal!)} y2=${h - padB - y(goal!)}
         stroke=${color} stroke-width="1" stroke-dasharray="3 3" opacity="0.5"/>`
     : nothing;
 
   return html`<svg class="chart" viewBox="0 0 ${w} ${h}" aria-hidden="true">
-    ${goalLine}${bars}
+    ${grid}${marks}${goalLine}${bars}
   </svg>`;
 }
 

@@ -94,26 +94,34 @@ export interface StatsRow {
 
 export type StatsMap = Record<string, StatsRow[]>;
 
+export type StatsPeriod = 'day' | 'month';
+
 /**
- * Fetches daily long-term statistics — unlike recorder history these survive
- * the purge window, so month/year ranges keep working.
+ * Fetches daily or monthly long-term statistics — unlike recorder history
+ * these survive the purge window, so month/year/max ranges keep working.
  */
 export async function fetchStats(
   hass: HomeAssistant,
   entityIds: string[],
-  days: number
+  count: number,
+  period: StatsPeriod = 'day'
 ): Promise<StatsMap> {
   if (!entityIds.length) return {};
   const start = new Date();
   start.setHours(0, 0, 0, 0);
-  start.setDate(start.getDate() - (days - 1));
+  if (period === 'month') {
+    start.setDate(1);
+    start.setMonth(start.getMonth() - (count - 1));
+  } else {
+    start.setDate(start.getDate() - (count - 1));
+  }
 
   const resp = await hass.callWS<Record<string, Record<string, unknown>[]>>({
     type: 'recorder/statistics_during_period',
     start_time: start.toISOString(),
     end_time: new Date().toISOString(),
     statistic_ids: entityIds,
-    period: 'day',
+    period,
     types: ['mean', 'min', 'max', 'state', 'sum'],
   });
 
@@ -134,30 +142,77 @@ export async function fetchStats(
   return out;
 }
 
-/** Maps daily statistics rows onto the same day buckets bucketDaily produces. */
+function statsValue(r: StatsRow, aggregate: Aggregate): number | null {
+  return aggregate === 'min'
+    ? r.min
+    : aggregate === 'max' || aggregate === 'sum'
+      ? (r.max ?? r.mean)
+      : aggregate === 'last'
+        ? (r.state ?? r.mean)
+        : r.mean;
+}
+
+/** Maps statistics rows onto day or month buckets (newest bucket = current). */
 export function bucketsFromStats(
   rows: StatsRow[],
-  days: number,
-  aggregate: Aggregate
+  count: number,
+  aggregate: Aggregate,
+  period: StatsPeriod = 'day'
 ): number[] {
+  const out: number[] = new Array(count).fill(NaN);
+  if (period === 'month') {
+    const now = new Date();
+    const endIdx = now.getFullYear() * 12 + now.getMonth();
+    for (const r of rows) {
+      const d = new Date(r.start);
+      const idx = d.getFullYear() * 12 + d.getMonth() - (endIdx - (count - 1));
+      if (idx < 0 || idx >= count) continue;
+      const v = statsValue(r, aggregate);
+      if (v !== null) out[idx] = v;
+    }
+    return out;
+  }
   const dayStart = new Date();
   dayStart.setHours(0, 0, 0, 0);
-  const windowStart = dayStart.getTime() - (days - 1) * 86400000;
-  const out: number[] = new Array(days).fill(NaN);
+  const windowStart = dayStart.getTime() - (count - 1) * 86400000;
   for (const r of rows) {
     const idx = Math.floor((r.start - windowStart) / 86400000);
-    if (idx < 0 || idx >= days) continue;
-    const v =
-      aggregate === 'min'
-        ? r.min
-        : aggregate === 'max' || aggregate === 'sum'
-          ? (r.max ?? r.mean)
-          : aggregate === 'last'
-            ? (r.state ?? r.mean)
-            : r.mean;
+    if (idx < 0 || idx >= count) continue;
+    const v = statsValue(r, aggregate);
     if (v !== null) out[idx] = v;
   }
   return out;
+}
+
+/** Buckets raw history into one value per hour (last `hours` hours). */
+export function bucketHourly(
+  points: HistoryPoint[],
+  hours: number,
+  aggregate: Aggregate
+): number[] {
+  const hourStart = new Date();
+  hourStart.setMinutes(0, 0, 0);
+  const windowStart = hourStart.getTime() - (hours - 1) * 3600000;
+  const buckets: number[][] = Array.from({ length: hours }, () => []);
+  for (const p of points) {
+    const idx = Math.floor((p.t - windowStart) / 3600000);
+    if (idx >= 0 && idx < hours) buckets[idx].push(p.v);
+  }
+  return buckets.map((vals) => {
+    if (!vals.length) return NaN;
+    switch (aggregate) {
+      case 'min':
+        return Math.min(...vals);
+      case 'max':
+        return Math.max(...vals);
+      case 'sum':
+        return vals.reduce((a, b) => a + b, 0);
+      case 'last':
+        return vals[vals.length - 1];
+      default:
+        return vals.reduce((a, b) => a + b, 0) / vals.length;
+    }
+  });
 }
 
 /** Forward- and back-fills NaN gaps so line charts stay continuous. */

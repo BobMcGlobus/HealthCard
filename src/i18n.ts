@@ -36,10 +36,13 @@ const STRINGS: Record<string, Record<string, string>> = {
     stat_max: 'Max',
     stat_trend: 'Trend',
     goal_left: 'To goal',
+    period_day: 'D',
     period_week: 'W',
     period_month: 'M',
     period_quarter: '3M',
     period_year: 'Y',
+    period_max: 'Max',
+    event_times: 'Times of day (7 days)',
   },
   de: {
     goal: 'Ziel',
@@ -76,10 +79,13 @@ const STRINGS: Record<string, Record<string, string>> = {
     stat_max: 'Max',
     stat_trend: 'Trend',
     goal_left: 'Bis Ziel',
+    period_day: 'T',
     period_week: 'W',
     period_month: 'M',
     period_quarter: '3M',
     period_year: 'J',
+    period_max: 'Max',
+    event_times: 'Uhrzeiten (7 Tage)',
   },
 };
 

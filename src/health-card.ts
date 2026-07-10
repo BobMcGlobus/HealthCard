@@ -19,17 +19,19 @@ import { lang, t } from './i18n';
 import { fmtDuration, fmtLastUpdated, fmtNumber, joinUnit } from './format';
 import {
   bucketDaily,
+  bucketHourly,
   bucketsFromStats,
   fetchHistory,
   fetchStats,
   fillGaps,
   trendDelta,
 } from './history';
-import type { HistoryMap, StatsMap } from './history';
+import type { HistoryMap, StatsMap, StatsPeriod } from './history';
 import { barChart, lineChart, scoreGraphic } from './charts';
+import type { AxisMark, ChartOpts } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.4.0';
+const CARD_VERSION = '0.5.0';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
@@ -52,7 +54,10 @@ interface MetricCtx {
   icon: string;
   series: SeriesConfig[];
   primaryState?: HassEntity;
+  /** number of buckets in the current range */
   days: number;
+  /** bucket resolution of the current range */
+  kind: RangeKind;
   graph: GraphType;
   aggregate: Aggregate;
   trendMode: TrendMode;
@@ -66,14 +71,32 @@ interface MetricCtx {
 
 const CARD_STYLES = ['default', 'withings', 'glass', 'material', 'bubble', 'mirror'];
 
+type RangeKind = 'hour' | 'day' | 'month';
+
+interface PopupRange {
+  key: string;
+  kind: RangeKind;
+  count: number;
+}
+
+const POPUP_RANGES: PopupRange[] = [
+  { key: 'day', kind: 'hour', count: 24 },
+  { key: 'week', kind: 'day', count: 7 },
+  { key: 'month', kind: 'day', count: 30 },
+  { key: 'quarter', kind: 'day', count: 90 },
+  { key: 'year', kind: 'day', count: 365 },
+  { key: 'max', kind: 'month', count: 60 },
+];
+
 @customElement('health-card')
 export class HealthCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @state() private _config?: HealthCardConfig;
   @state() private _history: HistoryMap = {};
   @state() private _popup: number | null = null;
-  @state() private _popupDays: number | null = null;
-  @state() private _stats: { sig: string; data: StatsMap } | null = null;
+  @state() private _popupRange: string | null = null;
+  @state() private _stats: { sig: string; period: StatsPeriod; data: StatsMap } | null =
+    null;
   private _statsFetching = false;
 
   private _onKeydown = (e: KeyboardEvent): void => {
@@ -135,18 +158,29 @@ export class HealthCard extends LitElement {
     super.updated(changed);
     if (changed.has('hass') || changed.has('_config')) void this._maybeFetch();
     this._maybeFetchStats();
-    if (changed.has('_popup') || changed.has('_popupDays') || changed.has('_stats')) {
+    if (changed.has('_popup') || changed.has('_popupRange') || changed.has('_stats')) {
       // long-range charts scroll to the most recent data
       const sc = this.renderRoot?.querySelector('.chart-scroll');
       if (sc) sc.scrollLeft = sc.scrollWidth;
     }
   }
 
+  private _activeRange(): PopupRange | null {
+    return POPUP_RANGES.find((r) => r.key === this._popupRange) ?? null;
+  }
+
   /** Long-term statistics for popup ranges beyond the recorder purge window. */
   private _maybeFetchStats(): void {
     if (!this.hass || this._popup === null || !this._config) return;
-    const days = this._popupDays ?? 0;
-    if (days <= 10) return;
+    const range = this._activeRange();
+    if (!range) return;
+    const period: StatsPeriod | null =
+      range.kind === 'month'
+        ? 'month'
+        : range.kind === 'day' && range.count > 10
+          ? 'day'
+          : null;
+    if (!period) return;
     const m = this._config.metrics[this._popup];
     if (!m) return;
     const ids = new Set<string>();
@@ -154,12 +188,12 @@ export class HealthCard extends LitElement {
     for (const id of Object.values(m.phases ?? {})) if (id) ids.add(id);
     if (m.score_entity) ids.add(m.score_entity);
     const list = [...ids].filter((id) => this.hass.states[id]);
-    const sig = `${days}|${list.join(',')}`;
+    const sig = `${period}|${range.count}|${list.join(',')}`;
     if (!list.length || this._stats?.sig === sig || this._statsFetching) return;
     this._statsFetching = true;
-    fetchStats(this.hass, list, days)
+    fetchStats(this.hass, list, range.count, period)
       .then((data) => {
-        this._stats = { sig, data };
+        this._stats = { sig, period, data };
       })
       .catch((e) => console.warn('health-card: statistics fetch failed', e))
       .finally(() => {
@@ -167,18 +201,27 @@ export class HealthCard extends LitElement {
       });
   }
 
-  /** Day buckets for an entity, preferring long-term statistics when asked. */
+  /** Buckets for an entity: hourly/daily from history, long ranges from LTS. */
   private _bucketsFor(
     id: string,
-    days: number,
-    aggregate: Aggregate,
-    preferStats: boolean
+    kind: RangeKind,
+    count: number,
+    aggregate: Aggregate
   ): number[] {
-    if (preferStats && this._stats) {
-      const rows = this._stats.data[id];
-      if (rows?.length) return bucketsFromStats(rows, days, aggregate);
+    if (kind === 'hour') {
+      return bucketHourly(this._history[id] ?? [], count, aggregate);
     }
-    return bucketDaily(this._history[id] ?? [], days, aggregate);
+    if (kind === 'month') {
+      const rows = this._stats?.period === 'month' ? this._stats.data[id] : undefined;
+      return rows?.length
+        ? bucketsFromStats(rows, count, aggregate, 'month')
+        : new Array(count).fill(NaN);
+    }
+    if (count > 10 && this._stats?.period === 'day') {
+      const rows = this._stats.data[id];
+      if (rows?.length) return bucketsFromStats(rows, count, aggregate, 'day');
+    }
+    return bucketDaily(this._history[id] ?? [], count, aggregate);
   }
 
   private _watchedEntities(): string[] {
@@ -219,8 +262,13 @@ export class HealthCard extends LitElement {
       this._moreInfo(entityId);
       return;
     }
-    // sleep with a score entity opens on the month view for the calendar
-    this._popupDays = m.type === 'sleep' && m.score_entity ? 30 : null;
+    // sensible default views: pulse shows today's curve, sleep the calendar month
+    this._popupRange =
+      m.type === 'heart_rate'
+        ? 'day'
+        : m.type === 'sleep' && m.score_entity
+          ? 'month'
+          : null;
     this._popup = index;
   }
 
@@ -321,7 +369,7 @@ export class HealthCard extends LitElement {
   }
 
   /** Builds the shared render context for a metric (used by tile and popup). */
-  private _ctx(m: MetricConfig, daysOverride?: number): MetricCtx {
+  private _ctx(m: MetricConfig, range?: PopupRange | null): MetricCtx {
     const type = (m.type && PRESETS[m.type] ? m.type : 'custom') as MetricType;
     const preset = PRESETS[type];
     const accent = resolveColor(m.color) ?? resolveColor(preset.color)!;
@@ -337,8 +385,8 @@ export class HealthCard extends LitElement {
     const primaryState = series[0]?.entity
       ? this.hass.states[series[0].entity]
       : undefined;
-    const days = Math.max(1, daysOverride ?? m.days ?? this._config?.days ?? 7);
-    const preferStats = (daysOverride ?? 0) > 10;
+    const kind: RangeKind = range?.kind ?? 'day';
+    const days = Math.max(1, range?.count ?? m.days ?? this._config?.days ?? 7);
     const graph = m.graph ?? preset.graph;
     const aggregate = m.aggregate ?? preset.aggregate;
     const trendMode = m.trend ?? preset.trend;
@@ -351,7 +399,7 @@ export class HealthCard extends LitElement {
       '';
 
     const data: SeriesData[] = series.map((s, i) => {
-      const buckets = this._bucketsFor(s.entity, days, aggregate, preferStats);
+      const buckets = this._bucketsFor(s.entity, kind, days, aggregate);
       return {
         ...s,
         colorResolved:
@@ -373,7 +421,7 @@ export class HealthCard extends LitElement {
         .filter(Boolean) as string[];
       if (sleepIds.length) {
         const perPhase = sleepIds.map((id) =>
-          this._bucketsFor(id, days, aggregate, preferStats)
+          this._bucketsFor(id, kind, days, aggregate)
         );
         const combined = Array.from({ length: days }, (_, i) => {
           const vals = perPhase.map((b) => b[i]).filter(Number.isFinite);
@@ -397,6 +445,7 @@ export class HealthCard extends LitElement {
       series,
       primaryState,
       days,
+      kind,
       graph,
       aggregate,
       trendMode,
@@ -592,33 +641,119 @@ export class HealthCard extends LitElement {
     return joinUnit(fmtNumber(this.hass, x, c.precision), c.unit);
   }
 
-  private _dayLabels(days: number): TemplateResult | typeof nothing {
-    if (days > 14) return nothing;
+  /** Axis marks for the popup chart: gridlines and labels per range kind. */
+  private _xMarks(kind: RangeKind, count: number): AxisMark[] {
+    const locale = lang(this.hass) === 'de' ? 'de-DE' : 'en-US';
+    const marks: AxisMark[] = [];
+    if (kind === 'hour') {
+      const hourStart = new Date();
+      hourStart.setMinutes(0, 0, 0);
+      const start = hourStart.getTime() - (count - 1) * 3600000;
+      for (let i = 0; i < count; i++) {
+        const h = new Date(start + i * 3600000).getHours();
+        if (h % 6 === 0) marks.push({ i, label: String(h), line: h === 0 });
+      }
+      return marks;
+    }
+    if (kind === 'month') {
+      // month buckets: mark january for year-over-year comparison
+      const now = new Date();
+      for (let i = 0; i < count; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - (count - 1 - i), 1);
+        if (d.getMonth() === 0) marks.push({ i, label: String(d.getFullYear()), line: true });
+      }
+      return marks;
+    }
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - (count - 1));
+    if (count <= 14) {
+      for (let i = 0; i < count; i++) {
+        const d = new Date(start.getTime() + i * 86400000);
+        marks.push({ i, label: d.toLocaleDateString(locale, { weekday: 'narrow' }) });
+      }
+      return marks;
+    }
+    let mondays = 0;
+    let months = 0;
+    for (let i = 0; i < count; i++) {
+      const d = new Date(start.getTime() + i * 86400000);
+      if (count <= 45) {
+        // weekly gridlines, label every second monday
+        if (d.getDay() === 1) {
+          marks.push({
+            i,
+            label:
+              mondays++ % 2 === 0
+                ? d.toLocaleDateString(locale, { day: 'numeric', month: 'numeric' })
+                : undefined,
+            line: true,
+          });
+        }
+      } else if (d.getDate() === 1) {
+        // monthly gridlines, label every (second) month on long ranges
+        marks.push({
+          i,
+          label:
+            count <= 120 || months % 2 === 0
+              ? d.toLocaleDateString(locale, { month: 'short' })
+              : undefined,
+          line: true,
+        });
+        months++;
+      }
+    }
+    return marks;
+  }
+
+  /** Toothbrush popup: when was brushed — one 24h track per day with dots. */
+  private _renderEventTimes(entityId: string): TemplateResult | typeof nothing {
+    const pts = (this._history[entityId] ?? []).filter((p) => p.v > 0);
+    if (!pts.length) return nothing;
     const locale = lang(this.hass) === 'de' ? 'de-DE' : 'en-US';
     const start = new Date();
     start.setHours(0, 0, 0, 0);
-    const labels = Array.from({ length: days }, (_, i) =>
-      new Date(start.getTime() - (days - 1 - i) * 86400000).toLocaleDateString(locale, {
-        weekday: days > 9 ? 'narrow' : 'short',
-      })
-    );
-    return html`<div class="daylabels" style="--hc-days:${days}">
-      ${labels.map((l) => html`<span>${l}</span>`)}
+    const startMs = start.getTime() - 6 * 86400000;
+    const rows = Array.from({ length: 7 }, (_, d) => {
+      const dayStart = startMs + d * 86400000;
+      return {
+        date: new Date(dayStart),
+        events: pts.filter((p) => p.t >= dayStart && p.t < dayStart + 86400000),
+      };
+    });
+    return html`<div class="times">
+      <div class="times-title">${t(this.hass, 'event_times')}</div>
+      ${rows.map(
+        (r) => html`<div class="times-row">
+          <span class="times-day">
+            ${r.date.toLocaleDateString(locale, { weekday: 'short' })}
+          </span>
+          <div class="times-track">
+            ${r.events.map(
+              (e) => html`<span
+                class="times-dot"
+                style="left:${((e.t - r.date.getTime()) / 86400000) * 100}%"
+                title=${new Date(e.t).toLocaleTimeString(locale, {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              ></span>`
+            )}
+          </div>
+          <span class="times-count">${r.events.length}×</span>
+        </div>`
+      )}
+      <div class="times-hours">
+        <span>0</span><span>6</span><span>12</span><span>18</span><span>24</span>
+      </div>
     </div>`;
   }
-
-  private static readonly POPUP_PERIODS = [
-    { key: 'week', days: 7 },
-    { key: 'month', days: 30 },
-    { key: 'quarter', days: 90 },
-    { key: 'year', days: 365 },
-  ];
 
   private _renderPopup(): TemplateResult | typeof nothing {
     if (this._popup === null || !this._config) return nothing;
     const m = this._config.metrics[this._popup];
     if (!m) return nothing;
-    const c = this._ctx(m, this._popupDays ?? undefined);
+    const c = this._ctx(m, this._activeRange());
     if (!c.primaryState) return nothing;
     const primaryState = c.primaryState;
 
@@ -660,11 +795,20 @@ export class HealthCard extends LitElement {
       });
     }
 
-    // History chart: long ranges scroll horizontally, no dots, taller canvas.
+    // History chart with axes: long ranges scroll horizontally without dots.
     const n = c.days;
-    const wide = n > 16;
+    const wide = c.kind === 'month' || (c.kind === 'day' && n > 16);
     const historyGraph = c.graph === 'bar' || c.graph === 'progress' ? 'bar' : 'line';
-    const opts = wide ? { w: n * 10, h: 90, dots: false } : {};
+    const isDur = m.duration ?? c.preset.duration;
+    const yFmt = (val: number): string =>
+      isDur ? this._fmtMetricValue(c, val) : fmtNumber(this.hass, val, c.precision);
+    const opts: ChartOpts = {
+      w: wide ? n * (c.kind === 'month' ? 14 : 10) : 340,
+      h: wide ? 110 : 130,
+      dots: c.kind === 'day' && n <= 14,
+      yFmt,
+      xMarks: this._xMarks(c.kind, n),
+    };
     const historyTpl =
       historyGraph === 'bar'
         ? barChart(
@@ -677,14 +821,17 @@ export class HealthCard extends LitElement {
             c.data.map((s) => ({ values: s.filled, color: s.colorResolved })),
             opts
           );
-    const activeDays = this._popupDays ?? c.days;
+    const activeKey = this._popupRange ?? (n === 7 && c.kind === 'day' ? 'week' : '');
 
-    // Sleep score calendar (capped at ~3 months so it stays readable)
-    const calDays = Math.min(c.days, 91);
+    // Sleep score calendar (day resolution only, capped at ~3 months)
+    const calDays = Math.min(n, 91);
     const calendar =
-      c.type === 'sleep' && m.score_entity && this.hass.states[m.score_entity]
+      c.type === 'sleep' &&
+      c.kind === 'day' &&
+      m.score_entity &&
+      this.hass.states[m.score_entity]
         ? this._renderScoreCalendar(
-            this._bucketsFor(m.score_entity, calDays, 'mean', (this._popupDays ?? 0) > 10),
+            this._bucketsFor(m.score_entity, 'day', calDays, 'mean'),
             calDays
           )
         : nothing;
@@ -734,11 +881,11 @@ export class HealthCard extends LitElement {
             c.valueOverride
           )}
           <div class="periods">
-            ${HealthCard.POPUP_PERIODS.map(
+            ${POPUP_RANGES.map(
               (p) => html`<button
-                class="period ${activeDays === p.days ? 'active' : ''}"
+                class="period ${activeKey === p.key ? 'active' : ''}"
                 @click=${() => {
-                  this._popupDays = p.days;
+                  this._popupRange = p.key;
                 }}
               >
                 ${t(this.hass, `period_${p.key}`)}
@@ -751,9 +898,9 @@ export class HealthCard extends LitElement {
           <div class="popup-chart">
             ${wide
               ? html`<div class="chart-scroll">
-                  <div style="width:${n * 12}px">${historyTpl}</div>
+                  <div style="width:${opts.w}px">${historyTpl}</div>
                 </div>`
-              : html`${historyTpl}${this._dayLabels(n)}`}
+              : historyTpl}
           </div>
           ${stats.length
             ? html`<div class="stats">
@@ -766,6 +913,9 @@ export class HealthCard extends LitElement {
               </div>`
             : nothing}
           ${calendar}
+          ${c.type === 'toothbrush' && c.series[0]?.entity
+            ? this._renderEventTimes(c.series[0].entity)
+            : nothing}
           ${c.multi ? this._renderSeriesChips(c.data, c.precision, c.trendMode) : nothing}
           ${c.type === 'sleep' && m.phases ? this._renderSleepPhases(m) : nothing}
           ${this._renderSecondary(m)}
@@ -1103,14 +1253,23 @@ export class HealthCard extends LitElement {
       content: '';
       grid-area: 1 / 1;
       place-self: center;
-      width: 58%;
+      width: 56%;
       aspect-ratio: 1;
       border-radius: 50%;
       background: color-mix(in srgb, var(--hc-card-bg) 45%, transparent);
       border: 1px solid color-mix(in srgb, #fff 28%, transparent);
-      box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 35%, transparent);
-      -webkit-backdrop-filter: blur(10px);
-      backdrop-filter: blur(10px);
+      box-shadow:
+        inset 0 1px 0 color-mix(in srgb, #fff 35%, transparent),
+        0 4px 16px color-mix(in srgb, #000 10%, transparent);
+      -webkit-backdrop-filter: blur(10px) saturate(1.3);
+      backdrop-filter: blur(10px) saturate(1.3);
+    }
+    /* the frosted disc forms a stacking context that would otherwise paint
+       above the in-flow number/ring — lift both above it */
+    .s-glass .scorering,
+    .s-glass .scoreinner {
+      position: relative;
+      z-index: 1;
     }
     .s-glass .dialog {
       background: color-mix(in srgb, var(--hc-card-bg) 55%, transparent);
@@ -1473,6 +1632,11 @@ export class HealthCard extends LitElement {
       height: auto;
       display: block;
     }
+    .chart .axis {
+      fill: var(--secondary-text-color);
+      font-size: 9px;
+      font-weight: 500;
+    }
     .pbars {
       display: flex;
       flex-direction: column;
@@ -1670,14 +1834,6 @@ export class HealthCard extends LitElement {
       border-radius: 16px;
       padding: 12px 10px 8px;
     }
-    .daylabels {
-      display: grid;
-      grid-template-columns: repeat(var(--hc-days, 7), 1fr);
-      padding: 2px 2% 0;
-      font-size: 10px;
-      color: var(--secondary-text-color);
-      text-align: center;
-    }
     .stats {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
@@ -1790,6 +1946,65 @@ export class HealthCard extends LitElement {
     }
     .s-mirror .cal-cell.empty {
       background: rgba(255, 255, 255, 0.08);
+    }
+    .times {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .times-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--secondary-text-color);
+      margin-bottom: 2px;
+    }
+    .times-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .times-day {
+      width: 30px;
+      flex: none;
+      font-size: 11px;
+      color: var(--secondary-text-color);
+    }
+    .times-track {
+      position: relative;
+      flex: 1;
+      height: 14px;
+      border-radius: 7px;
+      background: color-mix(in srgb, var(--primary-text-color) 6%, transparent);
+    }
+    .times-dot {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--hc-accent);
+    }
+    .times-count {
+      width: 26px;
+      flex: none;
+      text-align: right;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--primary-text-color);
+    }
+    .times-hours {
+      display: flex;
+      justify-content: space-between;
+      margin: 0 34px 0 38px;
+      font-size: 9px;
+      color: var(--secondary-text-color);
+    }
+    .s-mirror .times-track {
+      background: rgba(255, 255, 255, 0.12);
+    }
+    .s-mirror .times-dot {
+      background: #fff;
     }
   `;
 }

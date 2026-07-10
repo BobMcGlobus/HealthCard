@@ -19,7 +19,9 @@ Trend-Pfeilen und Zielen. Vollständig Theme-kompatibel (Light & Dark).
 - 🎠 **Carousel-Layout**: alle Kacheln horizontal scrollbar auf minimalem Platz
 - 🫥 **Einbettbar**: Kartenhintergrund abschaltbar (rendert dann ganz ohne `ha-card` — keine Theme-Border) + randlose Darstellung für Container-Karten
 - 🔍 **Detail-Popup**: Klick auf eine Kachel öffnet eine eigene Detailansicht mit großem Verlauf, Wochentagen, Min/Ø/Max/Trend, „Bis Ziel" und allen Serien/Phasen
-- 📅 **Zeiträume im Popup**: Woche / Monat / 3 Monate / Jahr — lange Zeiträume kommen aus den Langzeit-Statistiken (überleben die Recorder-Bereinigung) und der Graph wird horizontal scrollbar
+- 📅 **Zeiträume im Popup**: Tag (stündlich, Standard bei Puls) / Woche / Monat / 3 Monate / Jahr / **Max** (5 Jahre monatlich, Jahresvergleich) — lange Zeiträume kommen aus den Langzeit-Statistiken (überleben die Recorder-Bereinigung) und der Graph wird horizontal scrollbar
+- 📐 **Achsen im Popup**: Y-Beschriftung mit Gitterlinien, X-Markierungen je Zeitraum (Stunden, Wochentage, Wochen-/Monatslinien, Jahresgrenzen bei Max)
+- 🪥 **Putzzeiten**: das Zähneputz-Popup zeigt pro Tag eine 24h-Leiste mit Punkten für jede Putz-Session inkl. Tageszähler
 - 🚦 **Score-Badge**: `score_entity` (z. B. Withings Schlafwert) zeigt eine Ampel-Plakette auf der Kachel; beim Schlaf gibt's im Popup eine Kalender-Heatmap mit nach Score eingefärbten Tagen
 - 🖱️ **Klick-Aktion pro Kachel**: Popup (Detailansicht), More-Info (HA-Dialog), Link oder nichts
 - 🎨 **6 Kartenstile** über `card_style`: HA-Standard, Withings (Default), Liquid Glass, Material You, Bubble, Magic Mirror — Kacheln **und** Popup passen sich an

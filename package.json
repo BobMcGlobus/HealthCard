@@ -1,6 +1,6 @@
 {
   "name": "health-card",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Withings-style, fully themeable health dashboard card for Home Assistant",
   "type": "module",
   "license": "MIT",

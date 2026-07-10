@@ -144,7 +144,7 @@ const rand = () => {
   return seed / 2147483647;
 };
 
-function fakeHistory(id, startMs, endMs) {
+function fakeDaily(id, startMs, endMs) {
   const [base, trend, jitter] = profiles[id] ?? [50, 0, 5];
   const points = [];
   const dayMs = 86400000;
@@ -156,6 +156,36 @@ function fakeHistory(id, startMs, endMs) {
     points.push({ s: String(Math.max(0, v)), lu: t / 1000 });
   }
   return points;
+}
+
+function fakeHistory(id, startMs, endMs) {
+  if (id === 'sensor.puls') {
+    // hourly heart rate with a day/night curve
+    const points = [];
+    for (let t = startMs; t <= endMs; t += 3600000) {
+      const hour = new Date(t).getHours();
+      const v = 64 + 9 * Math.sin(((hour - 4) / 24) * 2 * Math.PI) + (rand() - 0.5) * 6;
+      points.push({ s: String(Math.round(v)), lu: t / 1000 });
+    }
+    return points;
+  }
+  if (id === 'sensor.zahnputzzeit') {
+    // two brushing sessions per day: ~7:30 and ~21:40
+    const points = [];
+    const dayMs = 86400000;
+    for (let d = 0; ; d++) {
+      const dayStart = startMs + d * dayMs;
+      if (dayStart > endMs) break;
+      for (const h of [7.5, 21.7]) {
+        const t = dayStart + (h + (rand() - 0.5) * 0.8) * 3600000;
+        if (t >= startMs && t <= endMs) {
+          points.push({ s: String(Math.round(100 + rand() * 70)), lu: t / 1000 });
+        }
+      }
+    }
+    return points;
+  }
+  return fakeDaily(id, startMs, endMs);
 }
 
 const hass = {
@@ -175,7 +205,7 @@ const hass = {
       const end = new Date(msg.end_time).getTime();
       const out = {};
       for (const id of msg.statistic_ids) {
-        out[id] = fakeHistory(id, start, end).map((p) => ({
+        out[id] = fakeDaily(id, start, end).map((p) => ({
           start: p.lu * 1000,
           mean: +p.s,
           min: +p.s * 0.97,
