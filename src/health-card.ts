@@ -536,15 +536,24 @@ export class HealthCard extends LitElement {
     const v = valueOverride ?? this._numeric(primaryState, m.attribute);
     const goal = this._resolveGoal(m.goal);
 
-    if (Number.isFinite(goal) && goal > 0 && Number.isFinite(v)) {
-      // atmost (e.g. target weight): 100 % when at/below the goal
-      const raw = goalType === 'atmost' ? (goal / v) * 100 : (v / goal) * 100;
-      const pct = Math.round(Math.min(Math.max(raw, 0), 999));
-      const reached = pct >= 100;
-      return html`<div class="status ${reached ? 'good' : ''}">
-        <ha-icon .icon=${reached ? 'mdi:check-circle' : 'mdi:flag-outline'}></ha-icon>
-        <span>${t(this.hass, 'goal')}: ${pct} %</span>
-      </div>`;
+    if (Number.isFinite(goal) && Number.isFinite(v)) {
+      const start = this._resolveGoal(m.start);
+      let raw = NaN;
+      if (Number.isFinite(start) && start !== goal) {
+        // progress from start towards the goal, works in both directions
+        raw = ((start - v) / (start - goal)) * 100;
+      } else if (goal > 0) {
+        // no start value: plain ratio; atmost = 100 % at/below the goal
+        raw = goalType === 'atmost' ? (goal / v) * 100 : (v / goal) * 100;
+      }
+      if (!Number.isNaN(raw)) {
+        const pct = Math.round(Math.min(Math.max(raw, 0), 999));
+        const reached = pct >= 100;
+        return html`<div class="status ${reached ? 'good' : ''}">
+          <ha-icon .icon=${reached ? 'mdi:check-circle' : 'mdi:flag-outline'}></ha-icon>
+          <span>${t(this.hass, 'goal')}: ${pct} %</span>
+        </div>`;
+      }
     }
 
     if (trendMode === 'none') return nothing;

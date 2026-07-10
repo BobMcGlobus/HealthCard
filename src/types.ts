@@ -72,6 +72,11 @@ export interface MetricConfig {
   graph?: GraphType;
   /** Target: a number or an entity id (e.g. sensor.zielgewicht) */
   goal?: number | string;
+  /**
+   * Starting value (number or entity id). When set, the goal percentage is
+   * the progress from start to goal: (start - value) / (start - goal).
+   */
+  start?: number | string;
   /** Goal direction: atleast (default) or atmost (e.g. losing weight) */
   goal_type?: GoalType;
   precision?: number;

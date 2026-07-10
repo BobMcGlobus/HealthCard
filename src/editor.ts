@@ -28,6 +28,9 @@ const LABELS: Record<string, Record<string, string>> = {
     goal_type: 'Goal direction',
     gt_atleast: 'Reach at least',
     gt_atmost: 'Stay at/below (e.g. lose weight)',
+    goal_entity: 'Goal sensor (overrides number)',
+    start: 'Start value (number)',
+    start_entity: 'Start sensor (overrides number)',
     tap_action: 'Tap action',
     ta_popup: 'Popup (more info)',
     ta_link: 'Link',
@@ -48,7 +51,7 @@ const LABELS: Record<string, Record<string, string>> = {
     color: 'Color',
     unit: 'Unit',
     graph: 'Chart',
-    goal: 'Goal',
+    goal: 'Goal (number)',
     precision: 'Decimals',
     aggregate: 'Aggregation',
     trend: 'Trend',
@@ -82,6 +85,9 @@ const LABELS: Record<string, Record<string, string>> = {
     goal_type: 'Zielrichtung',
     gt_atleast: 'Mindestens erreichen',
     gt_atmost: 'Höchstens (z. B. abnehmen)',
+    goal_entity: 'Ziel-Sensor (hat Vorrang)',
+    start: 'Startwert (Zahl)',
+    start_entity: 'Start-Sensor (hat Vorrang)',
     tap_action: 'Klick-Aktion',
     ta_popup: 'Popup (Details)',
     ta_link: 'Link',
@@ -102,7 +108,7 @@ const LABELS: Record<string, Record<string, string>> = {
     color: 'Farbe',
     unit: 'Einheit',
     graph: 'Diagramm',
-    goal: 'Ziel',
+    goal: 'Ziel (Zahl)',
     precision: 'Nachkommastellen',
     aggregate: 'Aggregation',
     trend: 'Trend',
@@ -227,7 +233,10 @@ export class HealthCardEditor extends LitElement {
             },
           },
           { name: 'days', selector: { number: { min: 1, max: 60, mode: 'box' } } },
-          { name: 'goal', selector: { text: {} } },
+          { name: 'goal', selector: { number: { mode: 'box', step: 'any' } } },
+          { name: 'goal_entity', selector: { entity: {} } },
+          { name: 'start', selector: { number: { mode: 'box', step: 'any' } } },
+          { name: 'start_entity', selector: { entity: {} } },
           {
             name: 'goal_type',
             selector: {
@@ -345,7 +354,10 @@ export class HealthCardEditor extends LitElement {
                 .hass=${this.hass}
                 .data=${{
                   ...m,
-                  goal: m.goal != null ? String(m.goal) : undefined,
+                  goal: typeof m.goal === 'number' ? m.goal : undefined,
+                  goal_entity: typeof m.goal === 'string' ? m.goal : undefined,
+                  start: typeof m.start === 'number' ? m.start : undefined,
+                  start_entity: typeof m.start === 'string' ? m.start : undefined,
                   phases_deep: m.phases?.deep,
                   phases_light: m.phases?.light,
                   phases_rem: m.phases?.rem,
@@ -404,10 +416,12 @@ export class HealthCardEditor extends LitElement {
     if (Object.keys(phases).length) value.phases = phases;
     else delete value.phases;
 
-    // Goal is edited as text so it can hold an entity id; store numbers as numbers
-    if (typeof value.goal === 'string') {
-      const g = value.goal.trim();
-      if (/^-?\d+([.,]\d+)?$/.test(g)) value.goal = Number(g.replace(',', '.'));
+    // goal/start are edited as a number box plus an entity picker that both
+    // write to the same config key; a picked sensor wins over the number.
+    for (const key of ['goal', 'start']) {
+      const entityValue = value[`${key}_entity`];
+      delete value[`${key}_entity`];
+      if (typeof entityValue === 'string' && entityValue) value[key] = entityValue;
     }
 
     const metrics = [...this._config.metrics];

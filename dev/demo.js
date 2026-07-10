@@ -91,6 +91,7 @@ function entity(id, state, attrs) {
 const states = {
   'sensor.gewicht': entity('sensor.gewicht', 90.2, { unit_of_measurement: 'kg', friendly_name: 'Gewicht' }),
   'sensor.zielgewicht': entity('sensor.zielgewicht', 85, { unit_of_measurement: 'kg', friendly_name: 'Zielgewicht' }),
+  'sensor.startgewicht': entity('sensor.startgewicht', 96, { unit_of_measurement: 'kg', friendly_name: 'Startgewicht' }),
   'sensor.puls': entity('sensor.puls', 69, { unit_of_measurement: 'bpm', friendly_name: 'Puls' }),
   'sensor.blutdruck_sys': entity('sensor.blutdruck_sys', 121, { unit_of_measurement: 'mmHg', friendly_name: 'Systolisch' }),
   'sensor.blutdruck_dia': entity('sensor.blutdruck_dia', 79, { unit_of_measurement: 'mmHg', friendly_name: 'Diastolisch' }),
@@ -176,7 +177,12 @@ const config = {
   subtitle: 'Letzte 7 Tage',
   metrics: [
     { type: 'score', entity: 'sensor.gesundheitsscore' },
-    { type: 'weight', entity: 'sensor.gewicht', goal: 'sensor.zielgewicht' },
+    {
+      type: 'weight',
+      entity: 'sensor.gewicht',
+      goal: 'sensor.zielgewicht',
+      start: 'sensor.startgewicht',
+    },
     {
       type: 'body_composition',
       label: 'Fettabbau',

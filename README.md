@@ -48,7 +48,8 @@ metrics:
   - type: weight
     entity: sensor.gewicht
     goal: sensor.zielgewicht     # Zahl oder Sensor
-    goal_type: atmost            # abnehmen: Ziel ist erreicht bei <= Zielwert
+    start: 96                    # Zahl oder Sensor: Ziel-% = Fortschritt Start → Ziel
+    goal_type: atmost            # ohne start: Ziel ist erreicht bei <= Zielwert
   - type: body_composition
     label: Fettabbau
     entities:
@@ -139,7 +140,8 @@ metrics: [...]
 | `days`      | number | History-Zeitraum nur für diese Metrik                                         |
 | `graph`     | string | `line`, `bar`, `progress`, `none`                                             |
 | `goal`      | number/string | Zielwert **oder Sensor-Entität** → „Ziel: x %", Ziellinie, Fortschrittsbalken |
-| `goal_type` | string | `atleast` (Default) oder `atmost` (Ziel erreicht bei ≤ Zielwert, z. B. Zielgewicht) |
+| `start`     | number/string | Startwert oder Sensor. Wenn gesetzt: Ziel-% = `(start − Wert) / (start − Ziel)` — der Fortschritt auf dem Weg zum Ziel (funktioniert für Ab- und Zunehmen) |
+| `goal_type` | string | Nur ohne `start`: `atleast` (Default) oder `atmost` (Ziel erreicht bei ≤ Zielwert) |
 | `tap_action`| string | `popup` (Default, More-Info-Dialog), `link`, `none`                           |
 | `link`      | string | Dashboard-Pfad oder URL für `tap_action: link`                                |
 | `max`       | number | Nur `score`: Maximalwert (Default 100)                                        |
