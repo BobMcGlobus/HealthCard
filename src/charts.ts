@@ -84,28 +84,32 @@ export function barChart(
   </svg>`;
 }
 
+const SCORE_PALETTE = [
+  'var(--amber-color, #FFC107)',
+  'var(--purple-color, #9C27B0)',
+  'var(--pink-color, #E91E63)',
+];
+const NEUTRAL_DOT = 'color-mix(in srgb, var(--primary-text-color) 16%, transparent)';
+
 /**
- * Withings-style confetti dot ring for the health score tile.
- * Deterministic layout (seeded), theme colors with fallbacks.
+ * Withings-style confetti dot ring. The share of colored dots (clockwise from
+ * the top) reflects the score ratio; the center glow takes the score color.
  */
-export function scoreRing(accent: string): TemplateResult {
-  const palette = [
-    'var(--amber-color, #FFC107)',
-    'var(--purple-color, #9C27B0)',
-    'var(--pink-color, #E91E63)',
-    'color-mix(in srgb, var(--primary-text-color) 16%, transparent)',
-    'color-mix(in srgb, var(--primary-text-color) 16%, transparent)',
-  ];
+export function scoreRing(scoreColor: string, ratio: number): TemplateResult {
   const rnd = (i: number) => Math.abs((Math.sin(i * 127.1) * 43758.5453) % 1);
   const dots = [];
   for (let ring = 0; ring < 2; ring++) {
     const base = ring === 0 ? 74 : 88;
     const count = ring === 0 ? 26 : 32;
     for (let i = 0; i < count; i++) {
-      const a = (i / count) * Math.PI * 2 + rnd(i + ring * 100) * 0.18 - Math.PI / 2;
+      const frac = i / count;
+      const a = frac * Math.PI * 2 - Math.PI / 2 + rnd(i + ring * 100) * 0.12;
       const r = base + (rnd(i * 3 + ring * 7) - 0.5) * 6;
       const size = 2.4 + rnd(i * 7 + ring * 13) * 2.4;
-      const color = palette[Math.floor(rnd(i * 11 + ring * 29) * palette.length)];
+      const color =
+        frac < ratio
+          ? SCORE_PALETTE[Math.floor(rnd(i * 11 + ring * 29) * SCORE_PALETTE.length)]
+          : NEUTRAL_DOT;
       dots.push(
         svg`<circle cx=${100 + Math.cos(a) * r} cy=${100 + Math.sin(a) * r}
           r=${size} fill=${color} opacity="0.75"/>`
@@ -113,7 +117,61 @@ export function scoreRing(accent: string): TemplateResult {
     }
   }
   return html`<svg class="scorering" viewBox="0 0 200 200" aria-hidden="true">
-    <circle cx="100" cy="100" r="62" fill="color-mix(in srgb, ${accent} 9%, transparent)" />
+    <circle cx="100" cy="100" r="62" fill="color-mix(in srgb, ${scoreColor} 10%, transparent)" />
     ${dots}
   </svg>`;
+}
+
+/** Clean progress ring (default, glass, bubble, mirror score variants). */
+export function scoreArc(color: string, ratio: number, width = 10): TemplateResult {
+  const R = 82;
+  const C = 2 * Math.PI * R;
+  return html`<svg class="scorering" viewBox="0 0 200 200" aria-hidden="true">
+    <circle cx="100" cy="100" r=${R} fill="none" stroke=${color} opacity="0.16"
+      stroke-width=${width}/>
+    <circle cx="100" cy="100" r=${R} fill="none" stroke=${color} stroke-width=${width}
+      stroke-linecap="round" stroke-dasharray="${C * Math.max(ratio, 0.02)} ${C}"
+      transform="rotate(-90 100 100)"/>
+  </svg>`;
+}
+
+/** Material You: scalloped tonal blob with an outer progress arc. */
+export function scoreScallop(
+  accent: string,
+  scoreColor: string,
+  ratio: number
+): TemplateResult {
+  const pts: string[] = [];
+  const N = 144;
+  for (let i = 0; i <= N; i++) {
+    const th = (i / N) * 2 * Math.PI;
+    const r = 72 + 7 * Math.cos(12 * th);
+    pts.push(
+      `${i ? 'L' : 'M'} ${(100 + Math.cos(th) * r).toFixed(1)} ${(100 + Math.sin(th) * r).toFixed(1)}`
+    );
+  }
+  const R = 92;
+  const C = 2 * Math.PI * R;
+  return html`<svg class="scorering" viewBox="0 0 200 200" aria-hidden="true">
+    <path d="${pts.join(' ')} Z" fill="color-mix(in srgb, ${accent} 22%, transparent)"/>
+    <circle cx="100" cy="100" r=${R} fill="none" stroke=${scoreColor} opacity="0.18"
+      stroke-width="5"/>
+    <circle cx="100" cy="100" r=${R} fill="none" stroke=${scoreColor} stroke-width="5"
+      stroke-linecap="round" stroke-dasharray="${C * Math.max(ratio, 0.02)} ${C}"
+      transform="rotate(-90 100 100)"/>
+  </svg>`;
+}
+
+/** Picks the score graphic matching the active card style. */
+export function scoreGraphic(
+  variant: string,
+  accent: string,
+  scoreColor: string,
+  ratio: number
+): TemplateResult {
+  if (variant === 'material') return scoreScallop(accent, scoreColor, ratio);
+  if (variant === 'bubble') return scoreArc(scoreColor, ratio, 15);
+  if (variant === 'mirror') return scoreArc('#fff', ratio, 7);
+  if (variant === 'default' || variant === 'glass') return scoreArc(scoreColor, ratio, 10);
+  return scoreRing(scoreColor, ratio);
 }

@@ -20,7 +20,8 @@ Trend-Pfeilen und Zielen. Vollständig Theme-kompatibel (Light & Dark).
 - 🫥 **Einbettbar**: Kartenhintergrund abschaltbar (rendert dann ganz ohne `ha-card` — keine Theme-Border) + randlose Darstellung für Container-Karten
 - 🔍 **Detail-Popup**: Klick auf eine Kachel öffnet eine eigene Detailansicht mit großem Verlauf, Wochentagen, Min/Ø/Max und allen Serien/Phasen
 - 🖱️ **Klick-Aktion pro Kachel**: Popup (Detailansicht), More-Info (HA-Dialog), Link oder nichts
-- 🎨 **5 Kartenstile** über `card_style`: HA-Standard, Withings (Default), Liquid Glass, Material You, Bubble
+- 🎨 **6 Kartenstile** über `card_style`: HA-Standard, Withings (Default), Liquid Glass, Material You, Bubble, Magic Mirror — Kacheln **und** Popup passen sich an
+- 💯 **Score-Optik je Stil und Wert**: Withings-Punktering (Anteil farbiger Punkte = Score), Fortschrittsring, Material-Scallop; Farbe wechselt mit dem Score (grün/orange/rot)
 - 🖱️ **Visueller Editor**: Metriken per UI hinzufügen, sortieren, konfigurieren
 - 🌍 Deutsch & Englisch (automatisch nach HA-Sprache)
 
@@ -120,7 +121,7 @@ metrics: [...]
 | `days`       | number  | `7`     | History-Zeitraum in Tagen (für alle Metriken)              |
 | `columns`    | number  | `1`     | Kachel-Spalten (1–3)                                       |
 | `layout`     | string  | `grid`  | `grid` oder `carousel` (horizontal scrollbar)              |
-| `card_style` | string  | `withings` | `default` (HA-Look), `withings`, `glass` (Liquid Glass), `material` (Material You), `bubble` |
+| `card_style` | string  | `withings` | `default` (HA-Look), `withings`, `glass` (Liquid Glass), `material` (Material You), `bubble`, `mirror` (Magic Mirror: schwarz, hochkontrast, monochrom) |
 | `tiles`      | boolean | `true`  | Metriken als Kacheln (`false` = flache Zeilen)             |
 | `background` | boolean | `true`  | `false`: Kartenhintergrund/-schatten entfernen (Container) |
 | `flush`      | boolean | `false` | `true`: kein Außenabstand, Kacheln bis zum Rand            |

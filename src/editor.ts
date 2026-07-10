@@ -7,7 +7,7 @@ import type {
   MetricConfig,
   MetricType,
 } from './types';
-import { COLOR_NAMES, PRESETS } from './presets';
+import { COLOR_NAMES, PRESETS, resolveColor } from './presets';
 import { lang, t } from './i18n';
 
 const METRIC_TYPES = Object.keys(PRESETS) as MetricType[];
@@ -31,6 +31,11 @@ const LABELS: Record<string, Record<string, string>> = {
     style_glass: 'Liquid Glass',
     style_material: 'Material You',
     style_bubble: 'Bubble',
+    style_mirror: 'Magic Mirror',
+    sec_display: 'Appearance',
+    sec_goal: 'Goal & progress',
+    sec_behavior: 'Behavior & data',
+    sec_phases: 'Sleep phases',
     goal_type: 'Goal direction',
     gt_atleast: 'Reach at least',
     gt_atmost: 'Stay at/below (e.g. lose weight)',
@@ -95,6 +100,11 @@ const LABELS: Record<string, Record<string, string>> = {
     style_glass: 'Liquid Glass',
     style_material: 'Material You',
     style_bubble: 'Bubble',
+    style_mirror: 'Magic Mirror',
+    sec_display: 'Darstellung',
+    sec_goal: 'Ziel & Fortschritt',
+    sec_behavior: 'Verhalten & Daten',
+    sec_phases: 'Schlafphasen',
     goal_type: 'Zielrichtung',
     gt_atleast: 'Mindestens erreichen',
     gt_atmost: 'Höchstens (z. B. abnehmen)',
@@ -186,7 +196,7 @@ export class HealthCardEditor extends LitElement {
             selector: {
               select: {
                 mode: 'dropdown',
-                options: ['default', 'withings', 'glass', 'material', 'bubble'].map(
+                options: ['default', 'withings', 'glass', 'material', 'bubble', 'mirror'].map(
                   (v) => ({ value: v, label: this._label(`style_${v}`) })
                 ),
               },
@@ -205,15 +215,35 @@ export class HealthCardEditor extends LitElement {
     const opts = (keys: string[], prefix: string) =>
       keys.map((k) => ({ value: k, label: this._label(`${prefix}_${k}`) }));
     const entitiesEditable = !m.entities || m.entities.every((e) => typeof e === 'string');
+    const section = (
+      title: string,
+      icon: string,
+      schema: unknown[]
+    ): Record<string, unknown> => ({
+      type: 'expandable',
+      name: '',
+      flatten: true,
+      title: this._label(title),
+      icon,
+      schema,
+    });
+
     return [
       {
-        name: 'type',
-        selector: {
-          select: {
-            mode: 'dropdown',
-            options: METRIC_TYPES.map((k) => ({ value: k, label: t(this.hass, k) })),
+        type: 'grid',
+        name: '',
+        schema: [
+          {
+            name: 'type',
+            selector: {
+              select: {
+                mode: 'dropdown',
+                options: METRIC_TYPES.map((k) => ({ value: k, label: t(this.hass, k) })),
+              },
+            },
           },
-        },
+          { name: 'name', selector: { text: {} } },
+        ],
       },
       { name: 'entity', selector: { entity: {} } },
       ...(type === 'blood_pressure'
@@ -222,95 +252,120 @@ export class HealthCardEditor extends LitElement {
       ...(MULTI_TYPES.includes(type) && entitiesEditable
         ? [{ name: 'entities', selector: { entity: { multiple: true } } }]
         : []),
+      section('sec_display', 'mdi:palette-outline', [
+        {
+          type: 'grid',
+          name: '',
+          schema: [
+            { name: 'icon', selector: { icon: {} } },
+            {
+              name: 'color',
+              selector: {
+                select: {
+                  mode: 'dropdown',
+                  custom_value: true,
+                  options: COLOR_NAMES.map((c) => ({ value: c, label: c })),
+                },
+              },
+            },
+            { name: 'unit', selector: { text: {} } },
+            {
+              name: 'graph',
+              selector: {
+                select: {
+                  mode: 'dropdown',
+                  options: opts(['line', 'bar', 'progress', 'none'], 'graph'),
+                },
+              },
+            },
+            { name: 'days', selector: { number: { min: 1, max: 60, mode: 'box' } } },
+            {
+              name: 'precision',
+              selector: { number: { min: 0, max: 3, mode: 'box' } },
+            },
+          ],
+        },
+        { name: 'label', selector: { text: {} } },
+      ]),
+      section('sec_goal', 'mdi:flag-checkered', [
+        {
+          type: 'grid',
+          name: '',
+          schema: [
+            { name: 'goal', selector: { number: { mode: 'box', step: 'any' } } },
+            { name: 'goal_entity', selector: { entity: {} } },
+            { name: 'start', selector: { number: { mode: 'box', step: 'any' } } },
+            { name: 'start_entity', selector: { entity: {} } },
+            {
+              name: 'goal_type',
+              selector: {
+                select: {
+                  mode: 'dropdown',
+                  options: opts(['atleast', 'atmost'], 'gt'),
+                },
+              },
+            },
+            ...(type === 'score'
+              ? [{ name: 'max', selector: { number: { min: 1, mode: 'box' } } }]
+              : []),
+          ],
+        },
+      ]),
+      section('sec_behavior', 'mdi:gesture-tap', [
+        {
+          type: 'grid',
+          name: '',
+          schema: [
+            {
+              name: 'tap_action',
+              selector: {
+                select: {
+                  mode: 'dropdown',
+                  options: opts(['popup', 'more-info', 'link', 'none'], 'ta'),
+                },
+              },
+            },
+            ...(m.tap_action === 'link'
+              ? [{ name: 'link', selector: { text: {} } }]
+              : []),
+            {
+              name: 'aggregate',
+              selector: {
+                select: {
+                  mode: 'dropdown',
+                  options: opts(['mean', 'min', 'max', 'sum', 'last'], 'agg'),
+                },
+              },
+            },
+            {
+              name: 'trend',
+              selector: {
+                select: {
+                  mode: 'dropdown',
+                  options: opts(['up_good', 'down_good', 'neutral', 'none'], 'trend'),
+                },
+              },
+            },
+          ],
+        },
+        { name: 'secondary', selector: { entity: { multiple: true } } },
+      ]),
       ...(type === 'sleep'
         ? [
-            { name: 'phases_deep', selector: { entity: {} } },
-            { name: 'phases_light', selector: { entity: {} } },
-            { name: 'phases_rem', selector: { entity: {} } },
-            { name: 'phases_awake', selector: { entity: {} } },
+            section('sec_phases', 'mdi:sleep', [
+              {
+                type: 'grid',
+                name: '',
+                schema: [
+                  { name: 'phases_deep', selector: { entity: {} } },
+                  { name: 'phases_light', selector: { entity: {} } },
+                  { name: 'phases_rem', selector: { entity: {} } },
+                  { name: 'phases_awake', selector: { entity: {} } },
+                ],
+              },
+            ]),
           ]
         : []),
-      { name: 'secondary', selector: { entity: { multiple: true } } },
-      {
-        type: 'grid',
-        name: '',
-        schema: [
-          { name: 'name', selector: { text: {} } },
-          { name: 'icon', selector: { icon: {} } },
-          {
-            name: 'color',
-            selector: {
-              select: {
-                mode: 'dropdown',
-                custom_value: true,
-                options: COLOR_NAMES.map((c) => ({ value: c, label: c })),
-              },
-            },
-          },
-          { name: 'unit', selector: { text: {} } },
-          {
-            name: 'graph',
-            selector: {
-              select: {
-                mode: 'dropdown',
-                options: opts(['line', 'bar', 'progress', 'none'], 'graph'),
-              },
-            },
-          },
-          { name: 'days', selector: { number: { min: 1, max: 60, mode: 'box' } } },
-          { name: 'goal', selector: { number: { mode: 'box', step: 'any' } } },
-          { name: 'goal_entity', selector: { entity: {} } },
-          { name: 'start', selector: { number: { mode: 'box', step: 'any' } } },
-          { name: 'start_entity', selector: { entity: {} } },
-          {
-            name: 'goal_type',
-            selector: {
-              select: {
-                mode: 'dropdown',
-                options: opts(['atleast', 'atmost'], 'gt'),
-              },
-            },
-          },
-          {
-            name: 'precision',
-            selector: { number: { min: 0, max: 3, mode: 'box' } },
-          },
-          ...(type === 'score'
-            ? [{ name: 'max', selector: { number: { min: 1, mode: 'box' } } }]
-            : []),
-          {
-            name: 'tap_action',
-            selector: {
-              select: {
-                mode: 'dropdown',
-                options: opts(['popup', 'more-info', 'link', 'none'], 'ta'),
-              },
-            },
-          },
-          ...(m.tap_action === 'link'
-            ? [{ name: 'link', selector: { text: {} } }]
-            : []),
-          {
-            name: 'aggregate',
-            selector: {
-              select: {
-                mode: 'dropdown',
-                options: opts(['mean', 'min', 'max', 'sum', 'last'], 'agg'),
-              },
-            },
-          },
-          {
-            name: 'trend',
-            selector: {
-              select: {
-                mode: 'dropdown',
-                options: opts(['up_good', 'down_good', 'neutral', 'none'], 'trend'),
-              },
-            },
-          },
-        ],
-      },
-      { name: 'label', selector: { text: {} } },
     ];
   }
 
@@ -350,7 +405,12 @@ export class HealthCardEditor extends LitElement {
     return html`
       <div class="metric ${open ? 'open' : ''}">
         <div class="metric-head" @click=${() => (this._expanded = open ? -1 : i)}>
-          <ha-icon .icon=${m.icon ?? preset.icon}></ha-icon>
+          <span
+            class="chip"
+            style="--c:${resolveColor(m.color) ?? resolveColor(preset.color)}"
+          >
+            <ha-icon .icon=${m.icon ?? preset.icon}></ha-icon>
+          </span>
           <span class="metric-title">
             ${m.name ?? t(this.hass, type)}
             <span class="metric-entity">${m.entity ?? ''}</span>
@@ -495,19 +555,38 @@ export class HealthCardEditor extends LitElement {
     }
     .metric {
       border: 1px solid var(--divider-color);
-      border-radius: 8px;
+      border-radius: 12px;
       overflow: hidden;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .metric:hover {
+      border-color: color-mix(in srgb, var(--primary-color) 50%, var(--divider-color));
+    }
+    .metric.open {
+      border-color: var(--primary-color);
+      box-shadow: 0 2px 12px color-mix(in srgb, var(--primary-color) 12%, transparent);
     }
     .metric-head {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
+      gap: 10px;
+      padding: 10px 12px;
       cursor: pointer;
       color: var(--primary-text-color);
     }
-    .metric-head > ha-icon {
-      color: var(--secondary-text-color);
+    .chip {
+      width: 30px;
+      height: 30px;
+      flex: none;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--c, var(--primary-color));
+      background: color-mix(in srgb, var(--c, var(--primary-color)) 15%, transparent);
+    }
+    .chip ha-icon {
+      --mdc-icon-size: 17px;
     }
     .metric-title {
       flex: 1;

@@ -36,7 +36,13 @@ export type TrendMode = 'up_good' | 'down_good' | 'neutral' | 'none';
 export type GoalType = 'atleast' | 'atmost';
 /** popup = built-in detail popup, more-info = native HA dialog */
 export type TapAction = 'popup' | 'more-info' | 'link' | 'none';
-export type CardStyle = 'default' | 'withings' | 'glass' | 'material' | 'bubble';
+export type CardStyle =
+  | 'default'
+  | 'withings'
+  | 'glass'
+  | 'material'
+  | 'bubble'
+  | 'mirror';
 
 export interface SleepPhases {
   deep?: string;
@@ -110,7 +116,7 @@ export interface HealthCardConfig {
   tiles?: boolean;
   /** grid (default) or carousel: horizontally scrollable tiles */
   layout?: 'grid' | 'carousel';
-  /** Visual style: default (plain HA), withings (default), glass, material, bubble */
+  /** Visual style: default (plain HA), withings (default), glass, material, bubble, mirror */
   card_style?: CardStyle;
   /** false: remove the ha-card background/shadow (for use inside containers) */
   background?: boolean;

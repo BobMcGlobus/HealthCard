@@ -19,10 +19,10 @@ import { lang, t } from './i18n';
 import { fmtDuration, fmtLastUpdated, fmtNumber, joinUnit } from './format';
 import { bucketDaily, fetchHistory, fillGaps, trendDelta } from './history';
 import type { HistoryMap } from './history';
-import { barChart, lineChart, scoreRing } from './charts';
+import { barChart, lineChart, scoreGraphic } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.2.0';
+const CARD_VERSION = '0.3.0';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
@@ -57,7 +57,7 @@ interface MetricCtx {
   multi: boolean;
 }
 
-const CARD_STYLES = ['default', 'withings', 'glass', 'material', 'bubble'];
+const CARD_STYLES = ['default', 'withings', 'glass', 'material', 'bubble', 'mirror'];
 
 @customElement('health-card')
 export class HealthCard extends LitElement {
@@ -223,10 +223,15 @@ export class HealthCard extends LitElement {
     );
   }
 
+  private _cardStyle(): string {
+    const s = this._config?.card_style ?? 'withings';
+    return CARD_STYLES.includes(s) ? s : 'withings';
+  }
+
   protected render(): TemplateResult | typeof nothing {
     if (!this.hass || !this._config) return nothing;
     const c = this._config;
-    const style = CARD_STYLES.includes(c.card_style ?? '') ? c.card_style : 'withings';
+    const style = this._cardStyle();
     const cardClass = [
       'cardroot',
       `s-${style}`,
@@ -447,7 +452,7 @@ export class HealthCard extends LitElement {
           </div>
         </div>
         <div class="scorewrap">
-          ${scoreRing(c.accent)}
+          ${scoreGraphic(this._cardStyle(), c.accent, this._scoreColor(v, max), Math.max(0, Math.min(Number.isFinite(v) ? v / max : 0, 1)))}
           <div class="scoreinner">
             <div class="scorenum">${fmtNumber(this.hass, v, m.precision ?? 0)}</div>
             <div class="scoremax">${t(this.hass, 'of')} ${max}</div>
@@ -458,6 +463,14 @@ export class HealthCard extends LitElement {
         </div>
       </div>
     `;
+  }
+
+  /** Traffic-light color for score visuals, driven by the score ratio. */
+  private _scoreColor(v: number, max: number): string {
+    const ratio = Number.isFinite(v) ? v / max : 0;
+    if (ratio >= 0.75) return 'var(--success-color, #43a047)';
+    if (ratio >= 0.45) return 'var(--warning-color, #fb8c00)';
+    return 'var(--error-color, #e53935)';
   }
 
   /** Formats a value the same way the metric's big value is formatted. */
@@ -522,7 +535,7 @@ export class HealthCard extends LitElement {
     `;
 
     return html`
-      <div class="backdrop" @click=${() => (this._popup = null)}>
+      <div class="backdrop s-${this._cardStyle()}" @click=${() => (this._popup = null)}>
         <div
           class="dialog"
           role="dialog"
@@ -863,9 +876,12 @@ export class HealthCard extends LitElement {
       padding: 0 0 14px 0;
     }
 
-    /* ---- card styles ------------------------------------------------- */
+    /* ---- card styles ---------------------------------------------------
+       .s-* rules use plain descendant selectors so they style both the card
+       tiles and the detail popup (the backdrop carries the same class). */
+
     /* default: plain HA look following the active theme */
-    .cardroot.s-default {
+    .s-default {
       --hc-tile-bg: var(
         --secondary-background-color,
         color-mix(in srgb, var(--primary-text-color) 5%, var(--hc-card-bg))
@@ -876,7 +892,7 @@ export class HealthCard extends LitElement {
     /* withings: soft tinted tiles (base tokens, nothing extra needed) */
 
     /* liquid glass: translucent, blurred, specular top edge */
-    .cardroot.s-glass {
+    .s-glass {
       --hc-tile-bg: color-mix(in srgb, var(--hc-card-bg) 42%, transparent);
       --hc-dot-fill: var(--hc-card-bg);
       --hc-tile-radius: 22px;
@@ -886,7 +902,7 @@ export class HealthCard extends LitElement {
       -webkit-backdrop-filter: blur(18px) saturate(1.5);
       backdrop-filter: blur(18px) saturate(1.5);
     }
-    .cardroot.s-glass .metric {
+    .s-glass .metric {
       border: 1px solid color-mix(in srgb, var(--primary-text-color) 12%, transparent);
       box-shadow:
         inset 0 1px 0 color-mix(in srgb, #fff 25%, transparent),
@@ -894,25 +910,90 @@ export class HealthCard extends LitElement {
       -webkit-backdrop-filter: blur(18px) saturate(1.5);
       backdrop-filter: blur(18px) saturate(1.5);
     }
+    .s-glass .iconchip {
+      background: color-mix(in srgb, var(--hc-accent) 24%, transparent);
+      border: 1px solid color-mix(in srgb, #fff 30%, transparent);
+      box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 40%, transparent);
+      -webkit-backdrop-filter: blur(10px) saturate(1.4);
+      backdrop-filter: blur(10px) saturate(1.4);
+    }
+    .s-glass .scorewrap::before {
+      content: '';
+      grid-area: 1 / 1;
+      place-self: center;
+      width: 58%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--hc-card-bg) 45%, transparent);
+      border: 1px solid color-mix(in srgb, #fff 28%, transparent);
+      box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 35%, transparent);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+    }
+    .s-glass .dialog {
+      background: color-mix(in srgb, var(--hc-card-bg) 55%, transparent);
+      -webkit-backdrop-filter: blur(26px) saturate(1.5);
+      backdrop-filter: blur(26px) saturate(1.5);
+      border: 1px solid color-mix(in srgb, #fff 25%, transparent);
+      box-shadow:
+        inset 0 1px 0 color-mix(in srgb, #fff 30%, transparent),
+        0 12px 48px rgba(0, 0, 0, 0.35);
+    }
 
-    /* material you: tonal surfaces, expressive radii */
-    .cardroot.s-material {
-      --hc-tile-bg: color-mix(in srgb, var(--primary-color) 10%, var(--hc-card-bg));
-      --hc-dot-fill: color-mix(in srgb, var(--primary-color) 10%, var(--hc-card-bg));
+    /* material you: per-metric tonal tiles, filled icon, top-left color orb */
+    .s-material {
       --hc-tile-radius: 24px;
     }
     ha-card.cardroot.s-material {
       border-radius: 28px;
     }
-    .cardroot.s-material .iconchip {
-      border-radius: 12px;
+    .s-material .metric {
+      position: relative;
+      overflow: hidden;
+      background: color-mix(in srgb, var(--hc-accent) 12%, var(--hc-card-bg));
+      --hc-dot-fill: color-mix(in srgb, var(--hc-accent) 12%, var(--hc-card-bg));
     }
-    .cardroot.s-material .value {
+    .s-material .metric::before {
+      content: '';
+      position: absolute;
+      top: -70px;
+      left: -70px;
+      width: 190px;
+      height: 190px;
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--hc-accent) 22%, transparent);
+      pointer-events: none;
+    }
+    .s-material .metric > * {
+      position: relative;
+    }
+    .s-material .iconchip {
+      border-radius: 14px;
+      background: var(--hc-accent);
+      color: var(--hc-card-bg);
+    }
+    .s-material .value {
       letter-spacing: 0;
+    }
+    .s-material .dialog {
+      border-radius: 28px;
+      background:
+        radial-gradient(
+          circle at -30px -30px,
+          color-mix(in srgb, var(--hc-accent) 24%, transparent) 0 130px,
+          transparent 131px
+        ),
+        color-mix(in srgb, var(--hc-accent) 9%, var(--hc-card-bg));
+      --hc-tile-bg: color-mix(in srgb, var(--hc-accent) 14%, var(--hc-card-bg));
+      --hc-dot-fill: color-mix(in srgb, var(--hc-accent) 14%, var(--hc-card-bg));
+    }
+    .s-material .dialog .iconchip {
+      background: var(--hc-accent);
+      color: var(--hc-card-bg);
     }
 
     /* bubble: free-floating solid modules with big icon bubbles */
-    .cardroot.s-bubble {
+    .s-bubble {
       --hc-tile-bg: var(--hc-card-bg);
       --hc-dot-fill: var(--hc-card-bg);
       --hc-tile-radius: 32px;
@@ -922,20 +1003,104 @@ export class HealthCard extends LitElement {
       box-shadow: none;
       border: none;
     }
-    .cardroot.s-bubble .metric {
+    .s-bubble .metric {
       box-shadow: var(--ha-card-box-shadow, 0 2px 8px rgba(0, 0, 0, 0.08));
       padding: 12px 16px;
     }
-    .cardroot.s-bubble .iconchip {
+    .s-bubble .iconchip {
       width: 42px;
       height: 42px;
       background: color-mix(in srgb, var(--hc-accent) 20%, transparent);
     }
-    .cardroot.s-bubble .iconchip ha-icon {
+    .s-bubble .iconchip ha-icon {
       --mdc-icon-size: 22px;
     }
-    .cardroot.s-bubble .name {
+    .s-bubble .name {
       font-weight: 700;
+    }
+    .s-bubble .dialog {
+      border-radius: 32px;
+    }
+
+    /* magic mirror: pure black, high contrast, monochrome graphics */
+    .s-mirror {
+      --hc-tile-bg: #000;
+      --hc-dot-fill: #000;
+      --hc-tile-radius: 14px;
+      color: #fff;
+    }
+    ha-card.cardroot.s-mirror {
+      background: #000;
+      box-shadow: none;
+      border: none;
+    }
+    .s-mirror .metric {
+      border: 1px solid rgba(255, 255, 255, 0.28);
+    }
+    .s-mirror .metric:hover {
+      background: #0d0d0d;
+    }
+    .s-mirror .title,
+    .s-mirror .name,
+    .s-mirror .value,
+    .s-mirror .scorenum,
+    .s-mirror .dialog-title,
+    .s-mirror .phaseval,
+    .s-mirror .serieschip,
+    .s-mirror .stat-value {
+      color: #fff;
+    }
+    .s-mirror .subtitle,
+    .s-mirror .time,
+    .s-mirror .unit,
+    .s-mirror .secondary,
+    .s-mirror .scoremax,
+    .s-mirror .stat-label,
+    .s-mirror .phase,
+    .s-mirror .pbar-label,
+    .s-mirror .daylabels {
+      color: rgba(255, 255, 255, 0.72);
+    }
+    .s-mirror .status {
+      color: rgba(255, 255, 255, 0.85);
+    }
+    .s-mirror .iconchip {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+    }
+    .s-mirror .chart,
+    .s-mirror .segbar,
+    .s-mirror .phasedot,
+    .s-mirror .bpdot {
+      filter: grayscale(1) brightness(1.75);
+    }
+    .s-mirror .serieschip .dotarrow {
+      background: rgba(255, 255, 255, 0.2) !important;
+    }
+    .s-mirror .pfill {
+      background: #fff;
+    }
+    .s-mirror .ptrack {
+      background: rgba(255, 255, 255, 0.18);
+    }
+    .s-mirror .missing {
+      color: rgba(255, 255, 255, 0.8);
+    }
+    .s-mirror .dialog {
+      background: #000;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .s-mirror .popup-chart,
+    .s-mirror .stat {
+      background: #000;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+    .s-mirror .close {
+      background: rgba(255, 255, 255, 0.16);
+      color: #fff;
+    }
+    .s-mirror .openha {
+      color: #fff;
     }
     .header {
       padding: 4px 4px 16px 4px;
