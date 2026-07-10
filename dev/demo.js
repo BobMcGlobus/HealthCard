@@ -114,6 +114,9 @@ const states = {
   'sensor.wachphasen': entity('sensor.wachphasen', 45, { unit_of_measurement: 'min', friendly_name: 'Wach' }),
   'sensor.schlafwert': entity('sensor.schlafwert', 82, { friendly_name: 'Schlafwert' }),
   'sensor.gesundheitsscore': entity('sensor.gesundheitsscore', 96, { friendly_name: 'Gesundheitsscore' }),
+  'sensor.aktivitaetsscore': entity('sensor.aktivitaetsscore', 88, { friendly_name: 'Aktivität' }),
+  'sensor.koerperscore': entity('sensor.koerperscore', 74, { friendly_name: 'Körper' }),
+  'sensor.herzscore': entity('sensor.herzscore', 91, { friendly_name: 'Herz' }),
   'sensor.zahnputzzeit': entity('sensor.zahnputzzeit', 135, { unit_of_measurement: 's', friendly_name: 'Zahnputzzeit' }),
 };
 
@@ -135,6 +138,9 @@ const profiles = {
   'sensor.rem_schlaf': [100, 0.5, 15],
   'sensor.schlafwert': [55, 0.9, 40],
   'sensor.gesundheitsscore': [92, 0.6, 2],
+  'sensor.aktivitaetsscore': [82, 0.8, 4],
+  'sensor.koerperscore': [76, -0.3, 3],
+  'sensor.herzscore': [88, 0.4, 3],
   'sensor.zahnputzzeit': [115, 2, 50],
 };
 
@@ -226,12 +232,41 @@ const config = {
   title: 'Messungen',
   subtitle: 'Letzte 7 Tage',
   metrics: [
-    { type: 'score', entity: 'sensor.gesundheitsscore' },
+    {
+      type: 'score',
+      entity: 'sensor.gesundheitsscore',
+      breakdown: [
+        { entity: 'sensor.aktivitaetsscore', name: 'Aktivität', color: 'amber' },
+        { entity: 'sensor.koerperscore', name: 'Körper', color: 'indigo' },
+        { entity: 'sensor.herzscore', name: 'Herz', color: 'pink' },
+      ],
+    },
+    {
+      type: 'body',
+      entity: 'sensor.gewicht',
+      gender: 'male',
+      goal: 'sensor.zielgewicht',
+      start: 'sensor.startgewicht',
+      score_entity: 'sensor.gesundheitsscore',
+      sleep_entity: 'sensor.schlafwert',
+      temperature_entity: 'sensor.koerpertemperatur',
+      anchors: [
+        { entity: 'sensor.puls', position: 'chest', name: 'Puls' },
+        {
+          entity: 'sensor.blutdruck_sys',
+          entity2: 'sensor.blutdruck_dia',
+          position: 'arm-left',
+          name: 'Blutdruck',
+        },
+        { entity: 'sensor.fettanteil', position: 'belly', name: 'Fett' },
+      ],
+    },
     {
       type: 'weight',
       entity: 'sensor.gewicht',
       goal: 'sensor.zielgewicht',
       start: 'sensor.startgewicht',
+      expanded: true,
     },
     {
       type: 'body_composition',

@@ -163,6 +163,15 @@ export const PRESETS: Record<MetricType, MetricPreset> = {
     duration: true,
     precision: 0,
   },
+  body: {
+    icon: 'mdi:human',
+    color: 'indigo',
+    graph: 'none',
+    aggregate: 'mean',
+    trend: 'down_good',
+    precision: 1,
+    goalType: 'atmost',
+  },
   custom: {
     icon: 'mdi:chart-line',
     color: 'primary',
@@ -171,6 +180,9 @@ export const PRESETS: Record<MetricType, MetricPreset> = {
     trend: 'neutral',
   },
 };
+
+/** Withings-like category colors for score breakdowns (activity/body/heart …) */
+export const BREAKDOWN_PALETTE = ['amber', 'indigo', 'pink', 'teal', 'purple'];
 
 /** Default colors for additional series in multi-series metrics */
 export const SERIES_PALETTE = ['teal', 'orange', 'pink', 'cyan', 'lime'];

@@ -54,6 +54,15 @@ const LABELS: Record<string, Record<string, string>> = {
     phase_rem: 'REM sleep entity',
     phase_awake: 'Awake entity',
     score_entity: 'Score sensor (traffic-light badge)',
+    breakdown: 'Sub-scores (category colors)',
+    expanded: 'Expanded tile (details inline)',
+    sec_body: 'Body figure',
+    gender: 'Build',
+    gender_female: 'Female',
+    gender_male: 'Male',
+    sleep_entity: 'Sleep score sensor (eye shadows)',
+    temperature_entity: 'Temperature sensor (fever glow)',
+    fever_from: 'Fever from (°C)',
     type: 'Type',
     entity: 'Entity',
     entity2: 'Second entity (e.g. diastolic)',
@@ -124,6 +133,15 @@ const LABELS: Record<string, Record<string, string>> = {
     phase_rem: 'REM-Schlaf-Entität',
     phase_awake: 'Wachphasen-Entität',
     score_entity: 'Score-Sensor (Ampel-Badge)',
+    breakdown: 'Sub-Scores (Kategoriefarben)',
+    expanded: 'Erweiterte Kachel (Details eingeblendet)',
+    sec_body: 'Körperfigur',
+    gender: 'Körperbau',
+    gender_female: 'Weiblich',
+    gender_male: 'Männlich',
+    sleep_entity: 'Schlafwert-Sensor (Augenringe)',
+    temperature_entity: 'Temperatur-Sensor (Fieber-Glow)',
+    fever_from: 'Fieber ab (°C)',
     type: 'Typ',
     entity: 'Entität',
     entity2: 'Zweite Entität (z. B. diastolisch)',
@@ -254,6 +272,10 @@ export class HealthCardEditor extends LitElement {
       ...(MULTI_TYPES.includes(type) && entitiesEditable
         ? [{ name: 'entities', selector: { entity: { multiple: true } } }]
         : []),
+      ...(type === 'score' &&
+      (!m.breakdown || m.breakdown.every((b) => typeof b === 'string'))
+        ? [{ name: 'breakdown', selector: { entity: { multiple: true } } }]
+        : []),
       section('sec_display', 'mdi:palette-outline', [
         {
           type: 'grid',
@@ -288,6 +310,7 @@ export class HealthCardEditor extends LitElement {
           ],
         },
         { name: 'label', selector: { text: {} } },
+        { name: 'expanded', selector: { boolean: {} } },
       ]),
       section('sec_goal', 'mdi:flag-checkered', [
         // rows pair same-height components: numbers, then pickers, then selects
@@ -366,6 +389,33 @@ export class HealthCardEditor extends LitElement {
         { name: 'secondary', selector: { entity: { multiple: true } } },
         { name: 'score_entity', selector: { entity: {} } },
       ]),
+      ...(type === 'body'
+        ? [
+            section('sec_body', 'mdi:human', [
+              {
+                type: 'grid',
+                name: '',
+                schema: [
+                  {
+                    name: 'gender',
+                    selector: {
+                      select: {
+                        mode: 'dropdown',
+                        options: opts(['female', 'male'], 'gender'),
+                      },
+                    },
+                  },
+                  {
+                    name: 'fever_from',
+                    selector: { number: { mode: 'box', step: 'any' } },
+                  },
+                  { name: 'sleep_entity', selector: { entity: {} } },
+                  { name: 'temperature_entity', selector: { entity: {} } },
+                ],
+              },
+            ]),
+          ]
+        : []),
       ...(type === 'sleep'
         ? [
             section('sec_phases', 'mdi:sleep', [

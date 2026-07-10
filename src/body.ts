@@ -1,0 +1,178 @@
+import { html, svg, nothing } from 'lit';
+import type { TemplateResult } from 'lit';
+
+export interface BodyOpts {
+  gender: 'female' | 'male';
+  /** body morph: -0.35 (slim) .. 1.1 (heavy), 0 = at goal weight */
+  shape: number;
+  /** 0..1 — dark rings under the eyes (sleep deficit) */
+  tired: number;
+  /** 0..1 — reddish glow on head and chest (fever) */
+  fever: number;
+  /** 0..1 — background energy glow intensity */
+  glow: number;
+  /** CSS color for the energy glow */
+  glowColor: string;
+  /** draw a blood-pressure cuff on this upper arm */
+  cuff?: 'left' | 'right';
+}
+
+type Pt = [number, number];
+
+/**
+ * Hand-tuned half-width measurements for the silhouette. Instead of freely
+ * extrapolating one shape (which quickly looks distorted), the figure blends
+ * between curated presets: slim / regular / full per build.
+ */
+interface ShapeParams {
+  shoulder: number;
+  arm: number;
+  hand: number;
+  waist: number;
+  belly: number;
+  hip: number;
+  knee: number;
+  ankle: number;
+}
+
+const SHAPES: Record<'female' | 'male', ShapeParams[]> = {
+  // [slim, regular, full]
+  female: [
+    { shoulder: 22, arm: 30, hand: 28, waist: 17, belly: 18, hip: 28, knee: 11, ankle: 7 },
+    { shoulder: 24, arm: 33, hand: 31, waist: 21, belly: 22, hip: 32, knee: 13, ankle: 8 },
+    { shoulder: 28, arm: 41, hand: 38, waist: 32, belly: 35, hip: 40, knee: 17, ankle: 10 },
+  ],
+  male: [
+    { shoulder: 27, arm: 34, hand: 31, waist: 19, belly: 19, hip: 24, knee: 12, ankle: 8 },
+    { shoulder: 30, arm: 38, hand: 34, waist: 24, belly: 25, hip: 27, knee: 14, ankle: 9 },
+    { shoulder: 34, arm: 46, hand: 42, waist: 36, belly: 40, hip: 35, knee: 18, ankle: 11 },
+  ],
+};
+
+function lerpParams(a: ShapeParams, b: ShapeParams, t: number): ShapeParams {
+  const out = {} as ShapeParams;
+  for (const k of Object.keys(a) as (keyof ShapeParams)[]) {
+    out[k] = a[k] + (b[k] - a[k]) * t;
+  }
+  return out;
+}
+
+/** Catmull-Rom → cubic bezier, closed loop */
+function smoothClosed(pts: Pt[]): string {
+  const n = pts.length;
+  const p = (i: number) => pts[((i % n) + n) % n];
+  let d = `M ${p(0)[0].toFixed(1)} ${p(0)[1].toFixed(1)}`;
+  for (let i = 0; i < n; i++) {
+    const p0 = p(i - 1);
+    const p1 = p(i);
+    const p2 = p(i + 1);
+    const p3 = p(i + 2);
+    const c1: Pt = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
+    const c2: Pt = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+    d += ` C ${c1[0].toFixed(1)} ${c1[1].toFixed(1)}, ${c2[0].toFixed(1)} ${c2[1].toFixed(1)}, ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
+  }
+  return `${d} Z`;
+}
+
+/**
+ * One continuous, softly abstracted silhouette (head to feet, arms resting
+ * against the body) — friendly animation-style proportions, no anatomical
+ * detail. Colors/gradient come from CSS variables so every card style can
+ * restyle the figure; fever, eye shadows and the cuff are overlays.
+ */
+export function bodyFigure(o: BodyOpts): TemplateResult {
+  const s = Math.max(-0.35, Math.min(o.shape, 1.1));
+  const presets = SHAPES[o.gender];
+  // blend between neighbouring curated presets, never extrapolate
+  const p =
+    s <= 0
+      ? lerpParams(presets[1], presets[0], Math.min(-s / 0.35, 1))
+      : lerpParams(presets[1], presets[2], Math.min(s / 0.85, 1));
+
+  // right half of the outline, top to bottom (x offsets from center 100)
+  const right: Pt[] = [
+    [100, 6], // crown
+    [114, 11],
+    [118, 28], // head side
+    [112, 45],
+    [106.5, 54], // jaw → neck (concave)
+    [106, 61],
+    [100 + p.shoulder * 0.75, 68],
+    [100 + p.shoulder + 5, 80], // round shoulder
+    [100 + p.arm, 120], // upper arm resting against the body
+    [100 + p.hand + 1, 155],
+    [100 + p.hand - 2, 176], // hand, rounded tip
+    [100 + p.waist + 4, 170], // waist notch between hand and hip
+    [100 + p.belly + 3, 182],
+    [100 + p.hip, 200], // hip
+    [100 + p.hip - 2, 228],
+    [100 + p.knee + 3, 262], // knee
+    [100 + p.ankle + 3, 298], // ankle
+    [100 + p.ankle + 8, 313], // small foot
+    [103, 316],
+    [103, 290], // inner leg
+    [103.5, 258],
+    [102, 230],
+    [100, 220], // crotch
+  ];
+  const left = right
+    .slice(1, right.length - 1)
+    .reverse()
+    .map(([x, y]): Pt => [200 - x, y]);
+  const outline = smoothClosed([...right, ...left]);
+
+  const cuffSide = o.cuff === 'left' ? -1 : 1;
+  const cuffX = 100 + cuffSide * (p.arm - 3);
+  const cuffAngle = cuffSide * 12;
+
+  return html`<svg class="bodyfig" viewBox="0 0 200 330" aria-hidden="true">
+    <defs>
+      <linearGradient id="hc-body-fill" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" style="stop-color: var(--hc-body-top)" />
+        <stop offset="100%" style="stop-color: var(--hc-body-bottom)" />
+      </linearGradient>
+      <radialGradient id="hc-body-glow">
+        <stop offset="0%" style="stop-color:${o.glowColor}" stop-opacity="0.5" />
+        <stop offset="70%" style="stop-color:${o.glowColor}" stop-opacity="0.12" />
+        <stop offset="100%" style="stop-color:${o.glowColor}" stop-opacity="0" />
+      </radialGradient>
+      <radialGradient id="hc-fever-glow">
+        <stop offset="0%" style="stop-color:var(--error-color, #e53935)" stop-opacity="0.5" />
+        <stop offset="100%" style="stop-color:var(--error-color, #e53935)" stop-opacity="0" />
+      </radialGradient>
+    </defs>
+
+    ${o.glow > 0
+      ? svg`<ellipse cx="100" cy="165" rx="96" ry="150"
+          fill="url(#hc-body-glow)" opacity=${o.glow}/>`
+      : nothing}
+
+    <g class="bodyshape">
+      <path class="solid" fill="url(#hc-body-fill)" d=${outline} />
+    </g>
+
+    ${o.fever > 0
+      ? svg`
+        <ellipse cx="100" cy="28" rx="26" ry="26" fill="url(#hc-fever-glow)"
+          opacity=${o.fever}/>
+        <ellipse cx="100" cy="105" rx="36" ry="32" fill="url(#hc-fever-glow)"
+          opacity=${o.fever * 0.9}/>`
+      : nothing}
+
+    ${o.tired > 0
+      ? svg`
+        <path d="M 89.5 34 q 3.5 3 7 0" fill="none" stroke-linecap="round"
+          stroke="color-mix(in srgb, var(--primary-text-color) 55%, transparent)"
+          stroke-width="1.7" opacity=${0.25 + o.tired * 0.5}/>
+        <path d="M 103.5 34 q 3.5 3 7 0" fill="none" stroke-linecap="round"
+          stroke="color-mix(in srgb, var(--primary-text-color) 55%, transparent)"
+          stroke-width="1.7" opacity=${0.25 + o.tired * 0.5}/>`
+      : nothing}
+
+    ${o.cuff
+      ? svg`<rect x=${cuffX - 11} y="100" width="22" height="12" rx="4"
+          fill="var(--hc-accent)" stroke="color-mix(in srgb, #fff 35%, transparent)"
+          stroke-width="1" transform="rotate(${cuffAngle} ${cuffX} 106)"/>`
+      : nothing}
+  </svg>`;
+}

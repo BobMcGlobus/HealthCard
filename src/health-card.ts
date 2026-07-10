@@ -3,6 +3,7 @@ import type { PropertyValues, TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import type {
   Aggregate,
+  BodyAnchor,
   GoalType,
   GraphType,
   HealthCardConfig,
@@ -13,8 +14,9 @@ import type {
   SeriesConfig,
   TrendMode,
 } from './types';
-import { PRESETS, SERIES_PALETTE, resolveColor } from './presets';
+import { BREAKDOWN_PALETTE, PRESETS, SERIES_PALETTE, resolveColor } from './presets';
 import type { MetricPreset } from './presets';
+import { bodyFigure } from './body';
 import { lang, t } from './i18n';
 import { fmtDuration, fmtLastUpdated, fmtNumber, joinUnit } from './format';
 import {
@@ -31,7 +33,7 @@ import { barChart, lineChart, scoreGraphic } from './charts';
 import type { AxisMark, ChartOpts } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.5.1';
+const CARD_VERSION = '0.6.0';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
@@ -95,9 +97,12 @@ export class HealthCard extends LitElement {
   @state() private _history: HistoryMap = {};
   @state() private _popup: number | null = null;
   @state() private _popupRange: string | null = null;
-  @state() private _stats: { sig: string; period: StatsPeriod; data: StatsMap } | null =
-    null;
-  private _statsFetching = false;
+  /** expanded tiles: chosen range key per metric index */
+  @state() private _tileRanges: Record<number, string> = {};
+  /** long-term statistics cache, keyed by `period|count` */
+  @state() private _statsCache: Record<string, StatsMap> = {};
+  private _statsCacheTime: Record<string, number> = {};
+  private _statsFetching = new Set<string>();
 
   private _onKeydown = (e: KeyboardEvent): void => {
     if (e.key === 'Escape' && this._popup !== null) this._popup = null;
@@ -157,11 +162,17 @@ export class HealthCard extends LitElement {
   protected updated(changed: PropertyValues): void {
     super.updated(changed);
     if (changed.has('hass') || changed.has('_config')) void this._maybeFetch();
-    this._maybeFetchStats();
-    if (changed.has('_popup') || changed.has('_popupRange') || changed.has('_stats')) {
+    this._syncStats();
+    if (
+      changed.has('_popup') ||
+      changed.has('_popupRange') ||
+      changed.has('_tileRanges') ||
+      changed.has('_statsCache')
+    ) {
       // long-range charts scroll to the most recent data
-      const sc = this.renderRoot?.querySelector('.chart-scroll');
-      if (sc) sc.scrollLeft = sc.scrollWidth;
+      this.renderRoot
+        ?.querySelectorAll('.chart-scroll')
+        .forEach((sc) => (sc.scrollLeft = sc.scrollWidth));
     }
   }
 
@@ -169,35 +180,42 @@ export class HealthCard extends LitElement {
     return POPUP_RANGES.find((r) => r.key === this._popupRange) ?? null;
   }
 
-  /** Long-term statistics for popup ranges beyond the recorder purge window. */
-  private _maybeFetchStats(): void {
-    if (!this.hass || this._popup === null || !this._config) return;
-    const range = this._activeRange();
-    if (!range) return;
-    const period: StatsPeriod | null =
-      range.kind === 'month'
-        ? 'month'
-        : range.kind === 'day' && range.count > 10
-          ? 'day'
-          : null;
-    if (!period) return;
-    const m = this._config.metrics[this._popup];
-    if (!m) return;
-    const ids = new Set<string>();
-    for (const s of this._series(m)) if (s.entity) ids.add(s.entity);
-    for (const id of Object.values(m.phases ?? {})) if (id) ids.add(id);
-    if (m.score_entity) ids.add(m.score_entity);
-    const list = [...ids].filter((id) => this.hass.states[id]);
-    const sig = `${period}|${range.count}|${list.join(',')}`;
-    if (!list.length || this._stats?.sig === sig || this._statsFetching) return;
-    this._statsFetching = true;
-    fetchStats(this.hass, list, range.count, period)
+  /** Long-term statistics for every active range (popup + expanded tiles). */
+  private _syncStats(): void {
+    if (!this.hass || !this._config) return;
+    const active: PopupRange[] = [];
+    if (this._popup !== null) {
+      const r = this._activeRange();
+      if (r) active.push(r);
+    }
+    this._config.metrics.forEach((m, i) => {
+      if (!m.expanded) return;
+      const r = POPUP_RANGES.find((x) => x.key === this._tileRanges[i]);
+      if (r) active.push(r);
+    });
+    for (const r of active) {
+      const period: StatsPeriod | null =
+        r.kind === 'month' ? 'month' : r.kind === 'day' && r.count > 10 ? 'day' : null;
+      if (period) this._ensureStats(period, r.count);
+    }
+  }
+
+  private _ensureStats(period: StatsPeriod, count: number): void {
+    const key = `${period}|${count}`;
+    const fresh =
+      this._statsCache[key] && Date.now() - (this._statsCacheTime[key] ?? 0) < 1800000;
+    if (fresh || this._statsFetching.has(key)) return;
+    const ids = this._watchedEntities();
+    if (!ids.length) return;
+    this._statsFetching.add(key);
+    fetchStats(this.hass, ids, count, period)
       .then((data) => {
-        this._stats = { sig, period, data };
+        this._statsCacheTime[key] = Date.now();
+        this._statsCache = { ...this._statsCache, [key]: data };
       })
       .catch((e) => console.warn('health-card: statistics fetch failed', e))
       .finally(() => {
-        this._statsFetching = false;
+        this._statsFetching.delete(key);
       });
   }
 
@@ -212,13 +230,13 @@ export class HealthCard extends LitElement {
       return bucketHourly(this._history[id] ?? [], count, aggregate);
     }
     if (kind === 'month') {
-      const rows = this._stats?.period === 'month' ? this._stats.data[id] : undefined;
+      const rows = this._statsCache[`month|${count}`]?.[id];
       return rows?.length
         ? bucketsFromStats(rows, count, aggregate, 'month')
         : new Array(count).fill(NaN);
     }
-    if (count > 10 && this._stats?.period === 'day') {
-      const rows = this._stats.data[id];
+    if (count > 10) {
+      const rows = this._statsCache[`day|${count}`]?.[id];
       if (rows?.length) return bucketsFromStats(rows, count, aggregate, 'day');
     }
     return bucketDaily(this._history[id] ?? [], count, aggregate);
@@ -231,6 +249,13 @@ export class HealthCard extends LitElement {
       for (const id of m.secondary ?? []) ids.add(id);
       for (const id of Object.values(m.phases ?? {})) if (id) ids.add(id);
       if (m.score_entity) ids.add(m.score_entity);
+      if (m.sleep_entity) ids.add(m.sleep_entity);
+      if (m.temperature_entity) ids.add(m.temperature_entity);
+      for (const a of m.anchors ?? []) {
+        ids.add(a.entity);
+        if (a.entity2) ids.add(a.entity2);
+      }
+      for (const b of m.breakdown ?? []) ids.add(typeof b === 'string' ? b : b.entity);
     }
     return [...ids].filter((id) => this.hass?.states[id]);
   }
@@ -477,6 +502,57 @@ export class HealthCard extends LitElement {
     }
 
     if (c.type === 'score') return this._renderScore(c, index);
+    if (c.type === 'body') return this._renderBody(c, index);
+
+    // expanded tiles show the popup details inline
+    if (m.expanded) {
+      const r = POPUP_RANGES.find((x) => x.key === this._tileRanges[index]) ?? null;
+      const ce = r ? this._ctx(m, r) : c;
+      const activeKey =
+        this._tileRanges[index] ??
+        (ce.days === 7 && ce.kind === 'day' ? 'week' : '');
+      return html`
+        <div
+          class="metric expanded ${(m.tap_action ?? 'popup') === 'none' ? 'noclick' : ''}"
+          style="--hc-accent:${c.accent}"
+          @click=${() => this._handleTap(m, index, c.series[0].entity)}
+        >
+          <div class="head">
+            <div class="iconchip"><ha-icon .icon=${c.icon}></ha-icon></div>
+            <div class="name">${c.name}</div>
+            ${this._renderScoreBadge(m)}
+            <div class="time">
+              ${fmtLastUpdated(this.hass, c.primaryState.last_updated)}
+            </div>
+          </div>
+          <div class="exp-value">
+            ${this._renderValue(
+              m,
+              ce.type,
+              ce.data,
+              ce.primaryState!,
+              ce.unit,
+              ce.precision,
+              ce.preset.duration,
+              ce.valueOverride
+            )}
+            ${this._renderStatus(
+              m,
+              ce.data[0],
+              ce.primaryState!,
+              ce.unit,
+              ce.precision,
+              ce.trendMode,
+              ce.goalType,
+              ce.valueOverride
+            )}
+          </div>
+          ${this._renderDetails(m, ce, activeKey, (k) => {
+            this._tileRanges = { ...this._tileRanges, [index]: k };
+          })}
+        </div>
+      `;
+    }
 
     // Multi-series metrics (entities: [...]) carry their info in the chips /
     // progress labels, so the big value, trend status and (for progress bars)
@@ -542,11 +618,39 @@ export class HealthCard extends LitElement {
     `;
   }
 
+  /** Resolved breakdown categories for a score metric (sub-goals). */
+  private _breakdown(m: MetricConfig) {
+    return (m.breakdown ?? [])
+      .map((b, i) => {
+        const cfg = typeof b === 'string' ? { entity: b } : b;
+        const st = this.hass.states[cfg.entity];
+        return {
+          ...cfg,
+          state: st,
+          value: this._numeric(st),
+          name: cfg.name ?? st?.attributes.friendly_name ?? cfg.entity,
+          colorResolved:
+            resolveColor(cfg.color) ??
+            resolveColor(BREAKDOWN_PALETTE[i % BREAKDOWN_PALETTE.length])!,
+        };
+      })
+      .filter((b) => b.state);
+  }
+
   private _renderScore(c: MetricCtx, index: number): TemplateResult {
     const m = c.m;
     const primaryState = c.primaryState!;
     const v = this._numeric(primaryState, m.attribute);
     const max = m.max ?? 100;
+
+    // sub-goal categories color the ring dots / arc segments proportionally
+    const breakdown = this._breakdown(m);
+    const withValue = breakdown.filter((b) => Number.isFinite(b.value) && b.value > 0);
+    const sum = withValue.reduce((a, b) => a + b.value, 0);
+    const segments =
+      sum > 0
+        ? withValue.map((b) => ({ color: b.colorResolved, share: b.value / sum }))
+        : undefined;
     return html`
       <div
         class="metric score-metric ${(m.tap_action ?? 'popup') === 'none' ? 'noclick' : ''}"
@@ -561,17 +665,173 @@ export class HealthCard extends LitElement {
           </div>
         </div>
         <div class="scorewrap">
-          ${scoreGraphic(this._cardStyle(), c.accent, this._scoreColor(v, max), Math.max(0, Math.min(Number.isFinite(v) ? v / max : 0, 1)))}
+          ${scoreGraphic(
+            this._cardStyle(),
+            c.accent,
+            this._scoreColor(v, max),
+            Math.max(0, Math.min(Number.isFinite(v) ? v / max : 0, 1)),
+            segments
+          )}
           <div class="scoreinner">
             <div class="scorenum">${fmtNumber(this.hass, v, m.precision ?? 0)}</div>
             <div class="scoremax">${t(this.hass, 'of')} ${max}</div>
           </div>
         </div>
+        ${breakdown.length
+          ? html`<div class="score-bars">
+              ${breakdown.map((b) => {
+                const pct = Number.isFinite(b.value)
+                  ? Math.max(0, Math.min((b.value / max) * 100, 100))
+                  : 0;
+                return html`<div class="sbar">
+                  <span class="sbar-name">${b.name}</span>
+                  <div class="sbar-track">
+                    <div
+                      class="sbar-fill"
+                      style="width:${pct}%;background:${b.colorResolved}"
+                    ></div>
+                  </div>
+                  <span class="sbar-val">
+                    ${Number.isFinite(b.value)
+                      ? fmtNumber(this.hass, b.value, 0)
+                      : '–'}
+                  </span>
+                </div>`;
+              })}
+            </div>`
+          : nothing}
         <div class="score-status">
           ${this._renderStatus(m, c.data[0], primaryState, '', 0, m.trend ?? 'up_good', 'atleast')}
         </div>
       </div>
     `;
+  }
+
+  private static readonly ANCHOR_POS: Record<
+    string,
+    { x: number; y: number; side: 'left' | 'right' }
+  > = {
+    head: { x: 50, y: 9, side: 'right' },
+    chest: { x: 56, y: 32, side: 'right' },
+    'arm-left': { x: 30, y: 33, side: 'left' },
+    'arm-right': { x: 70, y: 33, side: 'right' },
+    belly: { x: 54, y: 55, side: 'right' },
+    legs: { x: 57, y: 75, side: 'right' },
+  };
+
+  /** Avatar tile: stylized figure with state-driven effects and anchors. */
+  private _renderBody(c: MetricCtx, index: number): TemplateResult {
+    const m = c.m;
+    const primaryState = c.primaryState!;
+    const v = this._numeric(primaryState, m.attribute);
+    const goal = this._resolveGoal(m.goal);
+
+    // weight vs goal morphs the silhouette (0 = at goal)
+    let shape = 0;
+    if (Number.isFinite(v) && Number.isFinite(goal) && goal > 0) {
+      shape = Math.max(-0.35, Math.min((v / goal - 1) * 2.5, 1.1));
+    }
+    const sleepV = m.sleep_entity ? this._numeric(this.hass.states[m.sleep_entity]) : NaN;
+    const tired = Number.isFinite(sleepV)
+      ? Math.max(0, Math.min((60 - sleepV) / 45, 1))
+      : 0;
+    const tempV = m.temperature_entity
+      ? this._numeric(this.hass.states[m.temperature_entity])
+      : NaN;
+    const feverFrom = m.fever_from ?? 37.8;
+    const fever =
+      Number.isFinite(tempV) && tempV >= feverFrom
+        ? Math.min((tempV - feverFrom) / 2 + 0.4, 1)
+        : 0;
+    const scoreV = m.score_entity
+      ? this._numeric(this.hass.states[m.score_entity])
+      : NaN;
+    const max = m.max ?? 100;
+    const glow = Number.isFinite(scoreV) ? 0.25 + (scoreV / max) * 0.55 : 0;
+    const glowColor = Number.isFinite(scoreV)
+      ? this._scoreColor(scoreV, max)
+      : 'transparent';
+
+    const anchors = (m.anchors ?? []).filter((a) => this.hass.states[a.entity]);
+    const cuffAnchor = anchors.find((a) => a.entity2 && a.position?.startsWith('arm'));
+    const cuff =
+      cuffAnchor?.position === 'arm-left'
+        ? ('left' as const)
+        : cuffAnchor?.position === 'arm-right'
+          ? ('right' as const)
+          : undefined;
+
+    return html`
+      <div
+        class="metric body-metric ${(m.tap_action ?? 'popup') === 'none' ? 'noclick' : ''}"
+        style="--hc-accent:${c.accent}"
+        @click=${() => this._handleTap(m, index, primaryState.entity_id)}
+      >
+        <div class="head">
+          <div class="iconchip"><ha-icon .icon=${c.icon}></ha-icon></div>
+          <div class="name">${c.name}</div>
+          ${this._renderScoreBadge(m)}
+          <div class="time">
+            ${fmtLastUpdated(this.hass, primaryState.last_updated)}
+          </div>
+        </div>
+        <div class="bodywrap">
+          ${bodyFigure({
+            gender: m.gender ?? 'female',
+            shape,
+            tired,
+            fever,
+            glow,
+            glowColor,
+            cuff,
+          })}
+          ${anchors.map((a, i) => this._renderAnchor(a, i))}
+        </div>
+        <div class="body-foot">
+          ${this._renderValue(m, c.type, c.data, primaryState, c.unit, c.precision, false)}
+          ${this._renderStatus(
+            m,
+            c.data[0],
+            primaryState,
+            c.unit,
+            c.precision,
+            c.trendMode,
+            c.goalType
+          )}
+        </div>
+      </div>
+    `;
+  }
+
+  private _renderAnchor(a: BodyAnchor, i: number): TemplateResult | typeof nothing {
+    const pos = HealthCard.ANCHOR_POS[a.position ?? 'chest'];
+    const st = this.hass.states[a.entity];
+    if (!pos || !st) return nothing;
+    const color =
+      resolveColor(a.color) ?? resolveColor(SERIES_PALETTE[i % SERIES_PALETTE.length])!;
+    const v = this._numeric(st);
+    let value: string;
+    if (a.entity2) {
+      const v2 = this._numeric(this.hass.states[a.entity2]);
+      value = `${fmtNumber(this.hass, v, 0)}/${fmtNumber(this.hass, v2, 0)}`;
+    } else {
+      value = Number.isFinite(v)
+        ? joinUnit(
+            fmtNumber(this.hass, v),
+            st.attributes.unit_of_measurement ?? ''
+          )
+        : st.state;
+    }
+    return html`<div
+      class="anchor ${pos.side}"
+      style="left:${pos.x}%;top:${pos.y}%;--ac:${color}"
+    >
+      <span class="anchor-dot"></span>
+      <div class="anchor-chip">
+        <span class="anchor-name">${a.name ?? st.attributes.friendly_name ?? ''}</span>
+        <span class="anchor-val">${value}</span>
+      </div>
+    </div>`;
   }
 
   /** Traffic-light color for score visuals, driven by the score ratio. */
@@ -749,18 +1009,20 @@ export class HealthCard extends LitElement {
     </div>`;
   }
 
-  private _renderPopup(): TemplateResult | typeof nothing {
-    if (this._popup === null || !this._config) return nothing;
-    const m = this._config.metrics[this._popup];
-    if (!m) return nothing;
-    const c = this._ctx(m, this._activeRange());
-    if (!c.primaryState) return nothing;
-    const primaryState = c.primaryState;
-
+  /**
+   * Detail view shared by the popup and expanded tiles: period picker, big
+   * chart with axes, stats grid and metric-specific extras.
+   */
+  private _renderDetails(
+    m: MetricConfig,
+    c: MetricCtx,
+    activeKey: string,
+    setRange: (key: string) => void
+  ): TemplateResult {
     const finite = c.data[0].buckets.filter(Number.isFinite);
     const delta = trendDelta(c.data[0].filled);
     const goal = this._resolveGoal(m.goal);
-    const v = c.valueOverride ?? this._numeric(primaryState, m.attribute);
+    const v = c.valueOverride ?? this._numeric(c.primaryState, m.attribute);
     const stats: Array<{ label: string; value: string }> = [];
     if (finite.length) {
       stats.push(
@@ -821,7 +1083,6 @@ export class HealthCard extends LitElement {
             c.data.map((s) => ({ values: s.filled, color: s.colorResolved })),
             opts
           );
-    const activeKey = this._popupRange ?? (n === 7 && c.kind === 'day' ? 'week' : '');
 
     // Sleep score calendar (day resolution only, capped at ~3 months)
     const calDays = Math.min(n, 91);
@@ -835,6 +1096,60 @@ export class HealthCard extends LitElement {
             calDays
           )
         : nothing;
+
+    return html`
+      <div class="periods">
+        ${POPUP_RANGES.map(
+          (p) => html`<button
+            class="period ${activeKey === p.key ? 'active' : ''}"
+            @click=${(e: Event) => {
+              e.stopPropagation();
+              setRange(p.key);
+            }}
+          >
+            ${t(this.hass, `period_${p.key}`)}
+          </button>`
+        )}
+      </div>
+      ${c.graph === 'progress'
+        ? this._renderChart(m, 'progress', c.data, c.unit, c.precision)
+        : nothing}
+      <div class="popup-chart">
+        ${wide
+          ? html`<div class="chart-scroll">
+              <div style="width:${opts.w}px">${historyTpl}</div>
+            </div>`
+          : historyTpl}
+      </div>
+      ${stats.length
+        ? html`<div class="stats">
+            ${stats.map(
+              (s) => html`<div class="stat">
+                <div class="stat-label">${s.label}</div>
+                <div class="stat-value">${s.value}</div>
+              </div>`
+            )}
+          </div>`
+        : nothing}
+      ${calendar}
+      ${c.type === 'toothbrush' && c.series[0]?.entity
+        ? this._renderEventTimes(c.series[0].entity)
+        : nothing}
+      ${c.multi ? this._renderSeriesChips(c.data, c.precision, c.trendMode) : nothing}
+      ${c.type === 'sleep' && m.phases ? this._renderSleepPhases(m) : nothing}
+      ${this._renderSecondary(m)}
+    `;
+  }
+
+  private _renderPopup(): TemplateResult | typeof nothing {
+    if (this._popup === null || !this._config) return nothing;
+    const m = this._config.metrics[this._popup];
+    if (!m) return nothing;
+    const c = this._ctx(m, this._activeRange());
+    if (!c.primaryState) return nothing;
+    const primaryState = c.primaryState;
+    const activeKey =
+      this._popupRange ?? (c.days === 7 && c.kind === 'day' ? 'week' : '');
 
     return html`
       <div class="backdrop s-${this._cardStyle()}" @click=${() => (this._popup = null)}>
@@ -880,45 +1195,9 @@ export class HealthCard extends LitElement {
             c.goalType,
             c.valueOverride
           )}
-          <div class="periods">
-            ${POPUP_RANGES.map(
-              (p) => html`<button
-                class="period ${activeKey === p.key ? 'active' : ''}"
-                @click=${() => {
-                  this._popupRange = p.key;
-                }}
-              >
-                ${t(this.hass, `period_${p.key}`)}
-              </button>`
-            )}
-          </div>
-          ${c.graph === 'progress'
-            ? this._renderChart(m, 'progress', c.data, c.unit, c.precision)
-            : nothing}
-          <div class="popup-chart">
-            ${wide
-              ? html`<div class="chart-scroll">
-                  <div style="width:${opts.w}px">${historyTpl}</div>
-                </div>`
-              : historyTpl}
-          </div>
-          ${stats.length
-            ? html`<div class="stats">
-                ${stats.map(
-                  (s) => html`<div class="stat">
-                    <div class="stat-label">${s.label}</div>
-                    <div class="stat-value">${s.value}</div>
-                  </div>`
-                )}
-              </div>`
-            : nothing}
-          ${calendar}
-          ${c.type === 'toothbrush' && c.series[0]?.entity
-            ? this._renderEventTimes(c.series[0].entity)
-            : nothing}
-          ${c.multi ? this._renderSeriesChips(c.data, c.precision, c.trendMode) : nothing}
-          ${c.type === 'sleep' && m.phases ? this._renderSleepPhases(m) : nothing}
-          ${this._renderSecondary(m)}
+          ${this._renderDetails(m, c, activeKey, (k) => {
+            this._popupRange = k;
+          })}
           <button
             class="openha"
             @click=${() => {
@@ -1795,6 +2074,152 @@ export class HealthCard extends LitElement {
     .score-status {
       display: flex;
       justify-content: center;
+    }
+    .score-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+      max-width: 260px;
+      margin: 0 auto;
+    }
+    .sbar {
+      display: grid;
+      grid-template-columns: minmax(56px, auto) 1fr auto;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+    .sbar-name {
+      color: var(--secondary-text-color);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sbar-track {
+      height: 6px;
+      border-radius: 3px;
+      background: color-mix(in srgb, var(--primary-text-color) 8%, transparent);
+      overflow: hidden;
+    }
+    .sbar-fill {
+      height: 100%;
+      border-radius: 3px;
+    }
+    .sbar-val {
+      font-weight: 700;
+      color: var(--primary-text-color);
+    }
+    .s-mirror .sbar-fill {
+      filter: grayscale(1) brightness(1.75);
+    }
+    .exp-value {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+    }
+
+    /* ---- body / avatar tile -------------------------------------------
+       the fill vars live on .body-metric because --hc-accent is an inline
+       style on the tile — defined higher up, var() would not resolve */
+    .body-metric {
+      --hc-body-top: color-mix(in srgb, var(--hc-accent) 28%, var(--hc-card-bg));
+      --hc-body-bottom: color-mix(in srgb, var(--hc-accent) 12%, var(--hc-card-bg));
+      --hc-body-stroke: color-mix(in srgb, var(--hc-accent) 26%, transparent);
+    }
+    .bodywrap {
+      position: relative;
+      width: min(240px, 92%);
+      margin: 0 auto;
+    }
+    .bodyfig {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .bodyshape .solid {
+      stroke: var(--hc-body-stroke);
+      stroke-width: 1.5;
+      stroke-linejoin: round;
+    }
+    .s-glass .body-metric {
+      --hc-body-top: color-mix(in srgb, var(--hc-accent) 26%, transparent);
+      --hc-body-bottom: color-mix(in srgb, var(--hc-accent) 10%, transparent);
+      --hc-body-stroke: color-mix(in srgb, #fff 55%, transparent);
+    }
+    .s-material .body-metric {
+      --hc-body-top: color-mix(in srgb, var(--hc-accent) 40%, var(--hc-card-bg));
+      --hc-body-bottom: color-mix(in srgb, var(--hc-accent) 22%, var(--hc-card-bg));
+      --hc-body-stroke: transparent;
+    }
+    .s-bubble .body-metric {
+      --hc-body-top: color-mix(in srgb, var(--hc-accent) 32%, var(--hc-card-bg));
+      --hc-body-bottom: color-mix(in srgb, var(--hc-accent) 16%, var(--hc-card-bg));
+      --hc-body-stroke: transparent;
+    }
+    .s-mirror .body-metric {
+      --hc-body-top: rgba(255, 255, 255, 0.12);
+      --hc-body-bottom: rgba(255, 255, 255, 0.06);
+      --hc-body-stroke: #fff;
+    }
+    .anchor {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      pointer-events: none;
+    }
+    .anchor.left {
+      flex-direction: row-reverse;
+    }
+    .anchor-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex: none;
+      background: var(--ac);
+      border: 2px solid var(--hc-card-bg);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    }
+    .anchor-chip {
+      background: var(--hc-card-bg);
+      border-radius: 10px;
+      padding: 4px 9px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.16);
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+      white-space: nowrap;
+    }
+    .anchor-name {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--secondary-text-color);
+    }
+    .anchor-val {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primary-text-color);
+    }
+    .s-mirror .anchor-chip {
+      background: #000;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: none;
+    }
+    .s-mirror .anchor-dot {
+      border-color: #000;
+    }
+    .body-foot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .body-foot .value {
+      font-size: 24px;
     }
 
     /* ---- detail popup -------------------------------------------------- */

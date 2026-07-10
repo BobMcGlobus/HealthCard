@@ -26,6 +26,9 @@ Trend-Pfeilen und Zielen. Vollständig Theme-kompatibel (Light & Dark).
 - 🖱️ **Klick-Aktion pro Kachel**: Popup (Detailansicht), More-Info (HA-Dialog), Link oder nichts
 - 🎨 **6 Kartenstile** über `card_style`: HA-Standard, Withings (Default), Liquid Glass, Material You, Bubble, Magic Mirror — Kacheln **und** Popup passen sich an
 - 💯 **Score-Optik je Stil und Wert**: Withings-Punktering (Anteil farbiger Punkte = Score), Fortschrittsring, Material-Scallop; Farbe wechselt mit dem Score (grün/orange/rot)
+- 🧩 **Sub-Scores** (optional, `breakdown`): Kategorien wie Aktivität/Körper/Herz färben dezent die Withings-Punkte bzw. den Liquid-Glass-Glow und erscheinen als Mini-Balken unter dem Ring
+- 🧍 **Körper-Kachel** (`type: body`): stilisierte, freundlich abstrahierte Silhouette (handgetunte Formen schlank/normal/kräftig × weiblich/männlich, gemorpht nach Gewicht vs. Ziel), Energie-Glow nach Gesamtscore, Fieber-Glow an Kopf/Brust, angedeutete Augenringe bei Schlafmangel, Blutdruck-Manschette und frei platzierbare Wert-Anker (`anchors`)
+- 📖 **Erweiterte Kachel** (`expanded: true`): zeigt Zeitraum-Auswahl, großen Achsen-Chart und Statistiken direkt auf der Kachel statt im Popup
 - 🖱️ **Visueller Editor**: Metriken per UI hinzufügen, sortieren, konfigurieren
 - 🌍 Deutsch & Englisch (automatisch nach HA-Sprache)
 
@@ -154,7 +157,10 @@ metrics: [...]
 | `link`      | string | Dashboard-Pfad oder URL für `tap_action: link`                                |
 | `max`       | number | Nur `score`: Maximalwert (Default 100)                                        |
 | `phases`    | object | Nur `sleep`: `deep`/`light`/`rem`/`awake` Entitäten für die Phasen-Aufschlüsselung |
-| `score_entity` | string | Score-Sensor (0–100): Ampel-Badge auf der Kachel; bei `sleep` zusätzlich Kalender-Heatmap im Popup |
+| `score_entity` | string | Score-Sensor (0–100): Ampel-Badge auf der Kachel; bei `sleep` zusätzlich Kalender-Heatmap im Popup; bei `body` steuert er den Energie-Glow |
+| `breakdown` | list | Nur `score`: Sub-Score-Entitäten (Strings oder `{entity, name, color}`) — färben Punkte/Glow und erscheinen als Mini-Balken |
+| `expanded`  | bool   | Popup-Details (Zeiträume, Achsen-Chart, Statistiken) direkt auf der Kachel anzeigen |
+| `gender` / `sleep_entity` / `temperature_entity` / `fever_from` / `anchors` | – | Nur `body`: Körperbau, Schlafwert (Augenringe), Temperatur (Fieber-Glow ab `fever_from`, Default 37,8), Wert-Anker (`{entity, entity2, name, color, position: head/chest/arm-left/arm-right/belly/legs}`; Arm-Anker mit `entity2` zeichnen eine Blutdruck-Manschette) |
 | `precision` | number | Nachkommastellen                                                              |
 | `aggregate` | string | Tagesaggregation: `mean`, `min`, `max`, `sum`, `last`                         |
 | `trend`     | string | `up_good`, `down_good`, `neutral`, `none`                                     |

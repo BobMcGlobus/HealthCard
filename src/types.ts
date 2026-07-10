@@ -27,6 +27,7 @@ export type MetricType =
   | 'sleep'
   | 'score'
   | 'toothbrush'
+  | 'body'
   | 'custom';
 
 export type GraphType = 'line' | 'bar' | 'progress' | 'none';
@@ -49,6 +50,24 @@ export interface SleepPhases {
   light?: string;
   rem?: string;
   awake?: string;
+}
+
+export type BodyAnchorPosition =
+  | 'head'
+  | 'chest'
+  | 'arm-left'
+  | 'arm-right'
+  | 'belly'
+  | 'legs';
+
+/** Value label pinned to a spot on the body figure */
+export interface BodyAnchor {
+  entity: string;
+  /** second entity, e.g. diastolic — arm anchors with entity2 render a cuff */
+  entity2?: string;
+  name?: string;
+  color?: string;
+  position?: BodyAnchorPosition;
 }
 
 export interface SeriesConfig {
@@ -96,6 +115,8 @@ export interface MetricConfig {
   attribute?: string;
   /** What a tap on the tile does (default: popup = more-info) */
   tap_action?: TapAction;
+  /** Show the popup details (periods, big chart, stats) inline on the tile */
+  expanded?: boolean;
   /** Navigation path or URL for tap_action: link */
   link?: string;
   /** Score metrics: maximum value (default 100) */
@@ -105,8 +126,24 @@ export interface MetricConfig {
   /**
    * Optional score entity (0-100, e.g. Withings sleep score): shown as a
    * traffic-light badge on the tile; sleep popups add a calendar heatmap.
+   * On body metrics it drives the background energy glow.
    */
   score_entity?: string;
+  /**
+   * Score metrics: sub-goal categories (e.g. activity/body/heart). The ring
+   * dots / arc segments take the category colors proportionally.
+   */
+  breakdown?: (string | SeriesConfig)[];
+  /** Body metrics: silhouette build (default female) */
+  gender?: 'female' | 'male';
+  /** Body metrics: sleep score entity — low values draw eye shadows */
+  sleep_entity?: string;
+  /** Body metrics: body temperature entity — fever tints head and chest */
+  temperature_entity?: string;
+  /** Body metrics: temperature that counts as fever (default 37.8) */
+  fever_from?: number;
+  /** Body metrics: value labels pinned to body parts */
+  anchors?: BodyAnchor[];
 }
 
 export interface HealthCardConfig {

@@ -185,12 +185,35 @@ const SCORE_PALETTE = [
 ];
 const NEUTRAL_DOT = 'color-mix(in srgb, var(--primary-text-color) 16%, transparent)';
 
+/** Sub-goal segment: category color plus its share (0..1) of the score. */
+export interface ScoreSegment {
+  color: string;
+  share: number;
+}
+
 /**
  * Withings-style confetti dot ring. The share of colored dots (clockwise from
- * the top) reflects the score ratio; the center glow takes the score color.
+ * the top) reflects the score ratio; with segments the colored dots take the
+ * category colors proportionally (randomly mixed like the original).
  */
-export function scoreRing(scoreColor: string, ratio: number): TemplateResult {
+export function scoreRing(
+  scoreColor: string,
+  ratio: number,
+  segments?: ScoreSegment[]
+): TemplateResult {
   const rnd = (i: number) => Math.abs((Math.sin(i * 127.1) * 43758.5453) % 1);
+  const pick = (seed: number): string => {
+    if (!segments?.length) {
+      return SCORE_PALETTE[Math.floor(rnd(seed) * SCORE_PALETTE.length)];
+    }
+    const r = rnd(seed);
+    let acc = 0;
+    for (const s of segments) {
+      acc += s.share;
+      if (r <= acc) return s.color;
+    }
+    return segments[segments.length - 1].color;
+  };
   const dots = [];
   for (let ring = 0; ring < 2; ring++) {
     const base = ring === 0 ? 74 : 88;
@@ -200,10 +223,7 @@ export function scoreRing(scoreColor: string, ratio: number): TemplateResult {
       const a = frac * Math.PI * 2 - Math.PI / 2 + rnd(i + ring * 100) * 0.12;
       const r = base + (rnd(i * 3 + ring * 7) - 0.5) * 6;
       const size = 2.4 + rnd(i * 7 + ring * 13) * 2.4;
-      const color =
-        frac < ratio
-          ? SCORE_PALETTE[Math.floor(rnd(i * 11 + ring * 29) * SCORE_PALETTE.length)]
-          : NEUTRAL_DOT;
+      const color = frac < ratio ? pick(i * 11 + ring * 29) : NEUTRAL_DOT;
       dots.push(
         svg`<circle cx=${100 + Math.cos(a) * r} cy=${100 + Math.sin(a) * r}
           r=${size} fill=${color} opacity="0.75"/>`
@@ -216,16 +236,22 @@ export function scoreRing(scoreColor: string, ratio: number): TemplateResult {
   </svg>`;
 }
 
+/** Single progress arc with round caps. */
+function progressArc(R: number, width: number, ratio: number, color: string) {
+  const C = 2 * Math.PI * R;
+  return svg`<circle cx="100" cy="100" r=${R} fill="none" stroke=${color}
+    stroke-width=${width} stroke-linecap="round"
+    stroke-dasharray="${C * Math.max(ratio, 0.02)} ${C}"
+    transform="rotate(-90 100 100)"/>`;
+}
+
 /** Clean progress ring (default, bubble, mirror score variants). */
 export function scoreArc(color: string, ratio: number, width = 10): TemplateResult {
   const R = 82;
-  const C = 2 * Math.PI * R;
   return html`<svg class="scorering" viewBox="0 0 200 200" aria-hidden="true">
     <circle cx="100" cy="100" r=${R} fill="none" stroke=${color} opacity="0.16"
       stroke-width=${width}/>
-    <circle cx="100" cy="100" r=${R} fill="none" stroke=${color} stroke-width=${width}
-      stroke-linecap="round" stroke-dasharray="${C * Math.max(ratio, 0.02)} ${C}"
-      transform="rotate(-90 100 100)"/>
+    ${progressArc(R, width, ratio, color)}
   </svg>`;
 }
 
@@ -234,8 +260,12 @@ export function scoreArc(color: string, ratio: number, width = 10): TemplateResu
  * a colored glow that grows with the score; at (nearly) full score an outer
  * halo pulses softly.
  */
-export function scoreArcGlass(color: string, ratio: number): TemplateResult {
-  const R = 79;
+export function scoreArcGlass(
+  color: string,
+  ratio: number,
+  segments?: ScoreSegment[]
+): TemplateResult {
+  const R = 78;
   const w = 13;
   const C = 2 * Math.PI * R;
   const dash = `${C * Math.max(ratio, 0.02)} ${C}`;
@@ -243,28 +273,44 @@ export function scoreArcGlass(color: string, ratio: number): TemplateResult {
   const C2 = 2 * Math.PI * R2;
   const glow = 0.18 + ratio * 0.5;
   const full = ratio >= 0.95;
-  return html`<svg class="scorering" viewBox="0 0 200 200" aria-hidden="true">
+  // padded viewBox: blur glow and halo need room beyond the ring
+  return html`<svg class="scorering" viewBox="-14 -14 228 228" aria-hidden="true">
     <defs>
       <filter id="hc-glow" x="-40%" y="-40%" width="180%" height="180%">
         <feGaussianBlur stdDeviation="6" />
       </filter>
     </defs>
     ${full
-      ? svg`<circle cx="100" cy="100" r="96" fill="none" stroke=${color}
+      ? svg`<circle cx="100" cy="100" r="93" fill="none" stroke=${color}
           stroke-width="2.5" opacity="0.4" filter="url(#hc-glow)" class="glowpulse"/>`
       : nothing}
-    <circle cx="100" cy="100" r=${R} fill="none" stroke=${color}
-      stroke-width=${w + 7} stroke-linecap="round" stroke-dasharray=${dash}
-      transform="rotate(-90 100 100)" filter="url(#hc-glow)" opacity=${glow}
-      class=${full ? 'glowpulse' : ''}/>
+    ${(() => {
+      // sub-goals tint the soft glow behind the tube — subtle, not a pie chart
+      if (!segments?.length) {
+        return svg`<circle cx="100" cy="100" r=${R} fill="none" stroke=${color}
+          stroke-width=${w + 7} stroke-linecap="round" stroke-dasharray=${dash}
+          transform="rotate(-90 100 100)" filter="url(#hc-glow)" opacity=${glow}
+          class=${full ? 'glowpulse' : ''}/>`;
+      }
+      let offset = 0;
+      return segments.map((seg) => {
+        const len = C * ratio * seg.share;
+        const el = svg`<circle cx="100" cy="100" r=${R} fill="none"
+          stroke=${seg.color} stroke-width=${w + 7} stroke-linecap="butt"
+          stroke-dasharray="${Math.max(len, 0.1)} ${C}" stroke-dashoffset=${-offset}
+          transform="rotate(-90 100 100)" filter="url(#hc-glow)" opacity=${glow}
+          class=${full ? 'glowpulse' : ''}/>`;
+        offset += len;
+        return el;
+      });
+    })()}
     <circle cx="100" cy="100" r=${R} fill="none" stroke-width=${w}
       stroke="color-mix(in srgb, ${color} 13%, transparent)"/>
     <circle cx="100" cy="100" r=${R + w / 2 - 0.6} fill="none" stroke-width="1"
       stroke="color-mix(in srgb, #fff 30%, transparent)"/>
     <circle cx="100" cy="100" r=${R - w / 2 + 0.6} fill="none" stroke-width="1"
       stroke="color-mix(in srgb, #fff 12%, transparent)"/>
-    <circle cx="100" cy="100" r=${R} fill="none" stroke=${color} stroke-width=${w}
-      stroke-linecap="round" stroke-dasharray=${dash} transform="rotate(-90 100 100)"/>
+    ${progressArc(R, w, ratio, color)}
     <circle cx="100" cy="100" r=${R2} fill="none" stroke="rgba(255, 255, 255, 0.55)"
       stroke-width="1.6" stroke-linecap="round"
       stroke-dasharray="${C2 * Math.max(ratio, 0.02)} ${C2}"
@@ -288,14 +334,11 @@ export function scoreScallop(
     );
   }
   const R = 92;
-  const C = 2 * Math.PI * R;
   return html`<svg class="scorering" viewBox="0 0 200 200" aria-hidden="true">
     <path d="${pts.join(' ')} Z" fill="color-mix(in srgb, ${accent} 22%, transparent)"/>
     <circle cx="100" cy="100" r=${R} fill="none" stroke=${scoreColor} opacity="0.18"
       stroke-width="5"/>
-    <circle cx="100" cy="100" r=${R} fill="none" stroke=${scoreColor} stroke-width="5"
-      stroke-linecap="round" stroke-dasharray="${C * Math.max(ratio, 0.02)} ${C}"
-      transform="rotate(-90 100 100)"/>
+    ${progressArc(R, 5, ratio, scoreColor)}
   </svg>`;
 }
 
@@ -304,12 +347,15 @@ export function scoreGraphic(
   variant: string,
   accent: string,
   scoreColor: string,
-  ratio: number
+  ratio: number,
+  segments?: ScoreSegment[]
 ): TemplateResult {
+  // sub-goals stay subtle: category colors only tint the withings dots and
+  // the glass glow — plain arcs never turn into pie charts
   if (variant === 'material') return scoreScallop(accent, scoreColor, ratio);
   if (variant === 'bubble') return scoreArc(scoreColor, ratio, 15);
   if (variant === 'mirror') return scoreArc('#fff', ratio, 7);
-  if (variant === 'glass') return scoreArcGlass(scoreColor, ratio);
+  if (variant === 'glass') return scoreArcGlass(scoreColor, ratio, segments);
   if (variant === 'default') return scoreArc(scoreColor, ratio, 10);
-  return scoreRing(scoreColor, ratio);
+  return scoreRing(scoreColor, ratio, segments);
 }
