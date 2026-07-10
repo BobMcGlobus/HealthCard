@@ -33,7 +33,7 @@ import { barChart, lineChart, scoreGraphic } from './charts';
 import type { AxisMark, ChartOpts } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.6.0';
+const CARD_VERSION = '0.7.0';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
@@ -713,9 +713,9 @@ export class HealthCard extends LitElement {
   > = {
     head: { x: 50, y: 9, side: 'right' },
     chest: { x: 56, y: 32, side: 'right' },
-    'arm-left': { x: 30, y: 33, side: 'left' },
-    'arm-right': { x: 70, y: 33, side: 'right' },
-    belly: { x: 54, y: 55, side: 'right' },
+    'arm-left': { x: 31, y: 27, side: 'left' },
+    'arm-right': { x: 67, y: 20, side: 'left' },
+    belly: { x: 50, y: 54, side: 'right' },
     legs: { x: 57, y: 75, side: 'right' },
   };
 
@@ -776,15 +776,28 @@ export class HealthCard extends LitElement {
           </div>
         </div>
         <div class="bodywrap">
-          ${bodyFigure({
-            gender: m.gender ?? 'female',
-            shape,
-            tired,
-            fever,
-            glow,
-            glowColor,
-            cuff,
-          })}
+          ${this._bodyImage(m, shape)
+            ? html`
+                ${glow > 0
+                  ? html`<div
+                      class="body-glow"
+                      style="--hc-glow:${glowColor};opacity:${glow}"
+                    ></div>`
+                  : nothing}
+                <img class="bodyimg" src=${this._bodyImage(m, shape)!} alt="" />
+                ${fever > 0
+                  ? html`<div class="body-fever" style="opacity:${fever}"></div>`
+                  : nothing}
+              `
+            : bodyFigure({
+                gender: m.gender ?? 'female',
+                shape,
+                tired,
+                fever,
+                glow,
+                glowColor,
+                cuff,
+              })}
           ${anchors.map((a, i) => this._renderAnchor(a, i))}
         </div>
         <div class="body-foot">
@@ -801,6 +814,14 @@ export class HealthCard extends LitElement {
         </div>
       </div>
     `;
+  }
+
+  /** User-supplied figure image for the current weight state, if configured. */
+  private _bodyImage(m: MetricConfig, shape: number): string | undefined {
+    if (!m.images) return undefined;
+    const preferred =
+      shape < -0.12 ? m.images.slim : shape < 0.35 ? m.images.regular : m.images.full;
+    return preferred ?? m.images.regular ?? m.images.slim ?? m.images.full;
   }
 
   private _renderAnchor(a: BodyAnchor, i: number): TemplateResult | typeof nothing {
@@ -2138,6 +2159,36 @@ export class HealthCard extends LitElement {
       width: 100%;
       height: auto;
       display: block;
+    }
+    .bodyimg {
+      width: 100%;
+      height: auto;
+      display: block;
+      position: relative;
+    }
+    .body-glow {
+      position: absolute;
+      inset: -4%;
+      border-radius: 50%;
+      background: radial-gradient(
+        closest-side,
+        color-mix(in srgb, var(--hc-glow) 45%, transparent),
+        transparent
+      );
+      pointer-events: none;
+    }
+    .body-fever {
+      position: absolute;
+      top: 0;
+      left: 20%;
+      right: 20%;
+      height: 42%;
+      background: radial-gradient(
+        closest-side,
+        color-mix(in srgb, var(--error-color, #e53935) 45%, transparent),
+        transparent
+      );
+      pointer-events: none;
     }
     .bodyshape .solid {
       stroke: var(--hc-body-stroke);

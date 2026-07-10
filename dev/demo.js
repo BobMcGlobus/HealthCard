@@ -259,6 +259,7 @@ const config = {
           name: 'Blutdruck',
         },
         { entity: 'sensor.fettanteil', position: 'belly', name: 'Fett' },
+        { entity: 'sensor.muskelmasse', position: 'arm-right', name: 'Muskeln' },
       ],
     },
     {

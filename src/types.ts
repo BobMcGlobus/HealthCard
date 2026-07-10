@@ -144,6 +144,12 @@ export interface MetricConfig {
   fever_from?: number;
   /** Body metrics: value labels pinned to body parts */
   anchors?: BodyAnchor[];
+  /**
+   * Body metrics: use your own rendered figures instead of the built-in SVG.
+   * The card picks slim/regular/full by weight vs goal; energy glow, fever
+   * overlay and anchors keep working on top of the image.
+   */
+  images?: { slim?: string; regular?: string; full?: string };
 }
 
 export interface HealthCardConfig {

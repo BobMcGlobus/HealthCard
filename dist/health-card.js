@@ -786,44 +786,73 @@ function Dt(r) {
   return `${s} Z`;
 }
 function Tt(r) {
-  const e = Math.max(-0.35, Math.min(r.shape, 1.1)), t = Ft[r.gender], s = e <= 0 ? Ie(t[1], t[0], Math.min(-e / 0.35, 1)) : Ie(t[1], t[2], Math.min(e / 0.85, 1)), i = [
-    [100, 6],
-    // crown
-    [114, 11],
-    [118, 28],
-    // head side
-    [112, 45],
-    [106.5, 54],
-    // jaw → neck (concave)
-    [106, 61],
-    [100 + s.shoulder * 0.75, 68],
-    [100 + s.shoulder + 5, 80],
-    // round shoulder
-    [100 + s.arm, 120],
-    // upper arm resting against the body
-    [100 + s.hand + 1, 155],
-    [100 + s.hand - 2, 176],
-    // hand, rounded tip
-    [100 + s.waist + 4, 170],
-    // waist notch between hand and hip
-    [100 + s.belly + 3, 182],
+  const e = Math.max(-0.35, Math.min(r.shape, 1.1)), t = Ft[r.gender], s = e <= 0 ? Ie(t[1], t[0], Math.min(-e / 0.35, 1)) : Ie(t[1], t[2], Math.min(e / 0.85, 1)), i = s.shoulder, a = [
+    // head + neck (right side)
+    [100, 10],
+    [112, 14],
+    [116.5, 29],
+    [111, 43],
+    [105.5, 51],
+    [105, 60],
+    // neck notch
+    // trapezius + marked shoulder
+    [100 + i * 0.55, 66],
+    [100 + i + 2, 75],
+    // flexed arm: biceps bump → elbow → raised forearm → fist
+    [100 + i + 12, 64],
+    [100 + s.arm + 12, 68],
+    [100 + s.arm + 20, 88],
+    // elbow, clearly outside
+    [100 + s.arm + 22, 62],
+    [100 + s.arm + 15, 44],
+    // fist at ear height
+    [100 + s.arm + 6, 45],
+    [100 + s.arm + 2, 62],
+    [100 + s.arm - 4, 80],
+    // elbow crease
+    [100 + s.waist + 8, 102],
+    // underside of upper arm → armpit
+    [100 + s.waist + 1, 128],
+    [100 + s.waist, 152],
+    // free waist on the flexing side
+    [100 + s.belly + 2, 180],
     [100 + s.hip, 200],
-    // hip
+    // right leg
     [100 + s.hip - 2, 228],
     [100 + s.knee + 3, 262],
-    // knee
     [100 + s.ankle + 3, 298],
-    // ankle
     [100 + s.ankle + 8, 313],
-    // small foot
     [103, 316],
     [103, 290],
-    // inner leg
     [103.5, 258],
     [102, 230],
-    [100, 220]
+    [100, 220],
     // crotch
-  ], a = i.slice(1, i.length - 1).reverse().map(([l, h]) => [200 - l, h]), o = Dt([...i, ...a]), n = r.cuff === "left" ? -1 : 1, c = 100 + n * (s.arm - 3), d = n * 12;
+    // left leg (mirrored)
+    [98, 230],
+    [96.5, 258],
+    [97, 290],
+    [97, 316],
+    [100 - s.ankle - 8, 313],
+    [100 - s.ankle - 3, 298],
+    [100 - s.knee - 3, 262],
+    [100 - s.hip + 2, 228],
+    [100 - s.hip, 200],
+    // left side with resting arm (hand, waist notch)
+    [100 - s.belly - 3, 182],
+    [100 - s.waist - 4, 170],
+    [100 - s.hand + 2, 176],
+    [100 - s.hand - 1, 155],
+    [100 - s.arm, 120],
+    [100 - i - 5, 80],
+    [100 - i * 0.55, 66],
+    // neck + head (left side)
+    [95, 60],
+    [94.5, 51],
+    [89, 43],
+    [83.5, 29],
+    [88, 14]
+  ], o = Dt(a), n = 100 - (i + 7);
   return u`<svg class="bodyfig" viewBox="0 0 200 330" aria-hidden="true">
     <defs>
       <linearGradient id="hc-body-fill" x1="0" y1="0" x2="0" y2="1">
@@ -849,22 +878,22 @@ function Tt(r) {
     </g>
 
     ${r.fever > 0 ? v`
-        <ellipse cx="100" cy="28" rx="26" ry="26" fill="url(#hc-fever-glow)"
+        <ellipse cx="100" cy="30" rx="25" ry="25" fill="url(#hc-fever-glow)"
           opacity=${r.fever}/>
         <ellipse cx="100" cy="105" rx="36" ry="32" fill="url(#hc-fever-glow)"
           opacity=${r.fever * 0.9}/>` : p}
 
     ${r.tired > 0 ? v`
-        <path d="M 89.5 34 q 3.5 3 7 0" fill="none" stroke-linecap="round"
+        <path d="M 90.5 33 q 3 3 6 0" fill="none" stroke-linecap="round"
           stroke="color-mix(in srgb, var(--primary-text-color) 55%, transparent)"
-          stroke-width="1.7" opacity=${0.25 + r.tired * 0.5}/>
-        <path d="M 103.5 34 q 3.5 3 7 0" fill="none" stroke-linecap="round"
+          stroke-width="1.6" opacity=${0.25 + r.tired * 0.5}/>
+        <path d="M 103.5 33 q 3 3 6 0" fill="none" stroke-linecap="round"
           stroke="color-mix(in srgb, var(--primary-text-color) 55%, transparent)"
-          stroke-width="1.7" opacity=${0.25 + r.tired * 0.5}/>` : p}
+          stroke-width="1.6" opacity=${0.25 + r.tired * 0.5}/>` : p}
 
-    ${r.cuff ? v`<rect x=${c - 11} y="100" width="22" height="12" rx="4"
+    ${r.cuff ? v`<rect x=${n - 10} y="82" width="20" height="13" rx="4"
           fill="var(--hc-accent)" stroke="color-mix(in srgb, #fff 35%, transparent)"
-          stroke-width="1" transform="rotate(${d} ${c} 106)"/>` : p}
+          stroke-width="1" transform="rotate(${-14} ${n} 88)"/>` : p}
   </svg>`;
 }
 const Ge = {
@@ -1138,18 +1167,18 @@ function qe(r, e = {}) {
         stroke=${de} stroke-width="1" stroke-dasharray="2 3"/>
       <text class="axis" x=${l - 5} y=${y(f)} text-anchor="end"
         dominant-baseline="middle">${e.yFmt(f)}</text>`
-  ), A = (e.xMarks ?? []).map(
+  ), k = (e.xMarks ?? []).map(
     (f) => v`
       ${f.line ? v`<line x1=${g(f.i)} x2=${g(f.i)} y1=${E} y2=${s - h}
               stroke=${de} stroke-width="1"/>` : p}
       ${f.label ? v`<text class="axis" x=${g(f.i)} y=${s - 3} text-anchor="middle">${f.label}</text>` : p}`
-  ), k = a.map((f) => {
-    const x = f.values.map((b, S) => ({ x: g(S), y: y(b), ok: Number.isFinite(b) })).filter((b) => b.ok);
+  ), S = a.map((f) => {
+    const x = f.values.map((b, A) => ({ x: g(A), y: y(b), ok: Number.isFinite(b) })).filter((b) => b.ok);
     if (!x.length) return p;
     let m = `M ${x[0].x} ${x[0].y}`;
     for (let b = 1; b < x.length; b++) {
-      const S = (x[b - 1].x + x[b].x) / 2;
-      m += ` C ${S} ${x[b - 1].y}, ${S} ${x[b].y}, ${x[b].x} ${x[b].y}`;
+      const A = (x[b - 1].x + x[b].x) / 2;
+      m += ` C ${A} ${x[b - 1].y}, ${A} ${x[b].y}, ${x[b].x} ${x[b].y}`;
     }
     return v`
       <path d=${m} fill="none" stroke=${f.color} stroke-width="2.2"
@@ -1161,32 +1190,32 @@ function qe(r, e = {}) {
     `;
   });
   return u`<svg class="chart" viewBox="0 0 ${t} ${s}" aria-hidden="true">
-    ${_}${A}${k}
+    ${_}${k}${S}
   </svg>`;
 }
 function Ze(r, e, t, s = {}) {
   const i = s.w ?? at, a = s.h ?? nt;
   if (!r.some((m) => Number.isFinite(m) && m > 0)) return p;
-  const o = r.map((m) => Number.isFinite(m) && m > 0 ? m : 0), n = Math.max(...o, t ?? 0) || 1, c = o.length, d = s.yFmt ? [n, n / 2] : [], { padL: l, padB: h } = ct(s, d), g = (i - l - E) / c, y = Math.min(g * 0.55, 14), _ = (m) => m / n * (a - h - E), A = d.map(
+  const o = r.map((m) => Number.isFinite(m) && m > 0 ? m : 0), n = Math.max(...o, t ?? 0) || 1, c = o.length, d = s.yFmt ? [n, n / 2] : [], { padL: l, padB: h } = ct(s, d), g = (i - l - E) / c, y = Math.min(g * 0.55, 14), _ = (m) => m / n * (a - h - E), k = d.map(
     (m) => v`
       <line x1=${l} x2=${i - E} y1=${a - h - _(m)} y2=${a - h - _(m)}
         stroke=${de} stroke-width="1" stroke-dasharray="2 3"/>
       <text class="axis" x=${l - 5} y=${a - h - _(m)} text-anchor="end"
         dominant-baseline="middle">${s.yFmt(m)}</text>`
-  ), k = (s.xMarks ?? []).map((m) => {
+  ), S = (s.xMarks ?? []).map((m) => {
     const b = l + m.i * g + g / 2;
     return v`
       ${m.line ? v`<line x1=${b} x2=${b} y1=${E} y2=${a - h}
               stroke=${de} stroke-width="1"/>` : p}
       ${m.label ? v`<text class="axis" x=${b} y=${a - 3} text-anchor="middle">${m.label}</text>` : p}`;
   }), f = o.map((m, b) => {
-    const S = Math.max(_(m), m > 0 ? 3 : 1.5), N = l + b * g + (g - y) / 2;
-    return v`<rect x=${N} y=${a - h - S} width=${y} height=${S}
+    const A = Math.max(_(m), m > 0 ? 3 : 1.5), N = l + b * g + (g - y) / 2;
+    return v`<rect x=${N} y=${a - h - A} width=${y} height=${A}
       rx=${Math.min(y / 2, 4)} fill=${e} opacity=${m > 0 ? 1 : 0.25}/>`;
   }), x = Number.isFinite(t) ? v`<line x1=${l} x2=${i - E} y1=${a - h - _(t)} y2=${a - h - _(t)}
         stroke=${e} stroke-width="1" stroke-dasharray="3 3" opacity="0.5"/>` : p;
   return u`<svg class="chart" viewBox="0 0 ${i} ${a}" aria-hidden="true">
-    ${A}${k}${x}${f}
+    ${k}${S}${x}${f}
   </svg>`;
 }
 const Ye = [
@@ -1942,7 +1971,7 @@ var qt = Object.defineProperty, Zt = Object.getOwnPropertyDescriptor, R = (r, e,
     (o = r[a]) && (i = (s ? o(e, t, i) : o(i)) || i);
   return s && i && qt(e, t, i), i;
 };
-const Yt = "0.6.0", Jt = 5 * 60 * 1e3, Xt = 15 * 60 * 1e3, Qt = ["default", "withings", "glass", "material", "bubble", "mirror"], ae = [
+const Yt = "0.7.0", Jt = 5 * 60 * 1e3, Xt = 15 * 60 * 1e3, Qt = ["default", "withings", "glass", "material", "bubble", "mirror"], ae = [
   { key: "day", kind: "hour", count: 24 },
   { key: "week", kind: "day", count: 7 },
   { key: "month", kind: "day", count: 30 },
@@ -2153,11 +2182,11 @@ let M = class extends G {
   }
   /** Builds the shared render context for a metric (used by tile and popup). */
   _ctx(r, e) {
-    var m, b, S;
+    var m, b, A;
     const t = r.type && z[r.type] ? r.type : "custom", s = z[t], i = C(r.color) ?? C(s.color), a = r.name ?? $(this.hass, t), o = r.icon ?? s.icon, n = Object.values(r.phases ?? {}).filter(Boolean);
     let c = this._series(r);
     !c.length && t === "sleep" && n.length && (c = [{ entity: n[0] }]);
-    const d = (m = c[0]) != null && m.entity ? this.hass.states[c[0].entity] : void 0, l = (e == null ? void 0 : e.kind) ?? "day", h = Math.max(1, (e == null ? void 0 : e.count) ?? r.days ?? ((b = this._config) == null ? void 0 : b.days) ?? 7), g = r.graph ?? s.graph, y = r.aggregate ?? s.aggregate, _ = r.trend ?? s.trend, A = r.precision ?? s.precision, k = r.unit ?? ((S = c[0]) == null ? void 0 : S.unit) ?? (d == null ? void 0 : d.attributes.unit_of_measurement) ?? s.unit ?? "", f = c.map((N, B) => {
+    const d = (m = c[0]) != null && m.entity ? this.hass.states[c[0].entity] : void 0, l = (e == null ? void 0 : e.kind) ?? "day", h = Math.max(1, (e == null ? void 0 : e.count) ?? r.days ?? ((b = this._config) == null ? void 0 : b.days) ?? 7), g = r.graph ?? s.graph, y = r.aggregate ?? s.aggregate, _ = r.trend ?? s.trend, k = r.precision ?? s.precision, S = r.unit ?? ((A = c[0]) == null ? void 0 : A.unit) ?? (d == null ? void 0 : d.attributes.unit_of_measurement) ?? s.unit ?? "", f = c.map((N, B) => {
       const q = this._bucketsFor(N.entity, l, h, y);
       return {
         ...N,
@@ -2195,8 +2224,8 @@ let M = class extends G {
       graph: g,
       aggregate: y,
       trendMode: _,
-      precision: A,
-      unit: k,
+      precision: k,
+      unit: S,
       data: f,
       valueOverride: x,
       goalType: r.goal_type ?? s.goalType ?? "atleast",
@@ -2381,7 +2410,7 @@ let M = class extends G {
     const t = r.m, s = r.primaryState, i = this._numeric(s, t.attribute), a = this._resolveGoal(t.goal);
     let o = 0;
     Number.isFinite(i) && Number.isFinite(a) && a > 0 && (o = Math.max(-0.35, Math.min((i / a - 1) * 2.5, 1.1)));
-    const n = t.sleep_entity ? this._numeric(this.hass.states[t.sleep_entity]) : NaN, c = Number.isFinite(n) ? Math.max(0, Math.min((60 - n) / 45, 1)) : 0, d = t.temperature_entity ? this._numeric(this.hass.states[t.temperature_entity]) : NaN, l = t.fever_from ?? 37.8, h = Number.isFinite(d) && d >= l ? Math.min((d - l) / 2 + 0.4, 1) : 0, g = t.score_entity ? this._numeric(this.hass.states[t.score_entity]) : NaN, y = t.max ?? 100, _ = Number.isFinite(g) ? 0.25 + g / y * 0.55 : 0, A = Number.isFinite(g) ? this._scoreColor(g, y) : "transparent", k = (t.anchors ?? []).filter((m) => this.hass.states[m.entity]), f = k.find((m) => {
+    const n = t.sleep_entity ? this._numeric(this.hass.states[t.sleep_entity]) : NaN, c = Number.isFinite(n) ? Math.max(0, Math.min((60 - n) / 45, 1)) : 0, d = t.temperature_entity ? this._numeric(this.hass.states[t.temperature_entity]) : NaN, l = t.fever_from ?? 37.8, h = Number.isFinite(d) && d >= l ? Math.min((d - l) / 2 + 0.4, 1) : 0, g = t.score_entity ? this._numeric(this.hass.states[t.score_entity]) : NaN, y = t.max ?? 100, _ = Number.isFinite(g) ? 0.25 + g / y * 0.55 : 0, k = Number.isFinite(g) ? this._scoreColor(g, y) : "transparent", S = (t.anchors ?? []).filter((m) => this.hass.states[m.entity]), f = S.find((m) => {
       var b;
       return m.entity2 && ((b = m.position) == null ? void 0 : b.startsWith("arm"));
     }), x = (f == null ? void 0 : f.position) === "arm-left" ? "left" : (f == null ? void 0 : f.position) === "arm-right" ? "right" : void 0;
@@ -2400,16 +2429,23 @@ let M = class extends G {
           </div>
         </div>
         <div class="bodywrap">
-          ${Tt({
+          ${this._bodyImage(t, o) ? u`
+                ${_ > 0 ? u`<div
+                      class="body-glow"
+                      style="--hc-glow:${k};opacity:${_}"
+                    ></div>` : p}
+                <img class="bodyimg" src=${this._bodyImage(t, o)} alt="" />
+                ${h > 0 ? u`<div class="body-fever" style="opacity:${h}"></div>` : p}
+              ` : Tt({
       gender: t.gender ?? "female",
       shape: o,
       tired: c,
       fever: h,
       glow: _,
-      glowColor: A,
+      glowColor: k,
       cuff: x
     })}
-          ${k.map((m, b) => this._renderAnchor(m, b))}
+          ${S.map((m, b) => this._renderAnchor(m, b))}
         </div>
         <div class="body-foot">
           ${this._renderValue(t, r.type, r.data, s, r.unit, r.precision, !1)}
@@ -2425,6 +2461,10 @@ let M = class extends G {
         </div>
       </div>
     `;
+  }
+  /** User-supplied figure image for the current weight state, if configured. */
+  _bodyImage(r, e) {
+    return r.images ? (e < -0.12 ? r.images.slim : e < 0.35 ? r.images.regular : r.images.full) ?? r.images.regular ?? r.images.slim ?? r.images.full : void 0;
   }
   _renderAnchor(r, e) {
     const t = M.ANCHOR_POS[r.position ?? "chest"], s = this.hass.states[r.entity];
@@ -2626,7 +2666,7 @@ let M = class extends G {
       dots: e.kind === "day" && d <= 14,
       yFmt: y,
       xMarks: this._xMarks(e.kind, d)
-    }, A = h === "bar" ? Ze(
+    }, k = h === "bar" ? Ze(
       e.data[0].buckets,
       e.data[0].colorResolved,
       Number.isFinite(o) ? o : void 0,
@@ -2634,9 +2674,9 @@ let M = class extends G {
     ) : qe(
       e.data.map((m) => ({ values: m.filled, color: m.colorResolved })),
       _
-    ), k = Math.min(d, 91), f = e.type === "sleep" && e.kind === "day" && r.score_entity && this.hass.states[r.score_entity] ? this._renderScoreCalendar(
-      this._bucketsFor(r.score_entity, "day", k, "mean"),
-      k
+    ), S = Math.min(d, 91), f = e.type === "sleep" && e.kind === "day" && r.score_entity && this.hass.states[r.score_entity] ? this._renderScoreCalendar(
+      this._bucketsFor(r.score_entity, "day", S, "mean"),
+      S
     ) : p;
     return u`
       <div class="periods">
@@ -2654,8 +2694,8 @@ let M = class extends G {
       ${e.graph === "progress" ? this._renderChart(r, "progress", e.data, e.unit, e.precision) : p}
       <div class="popup-chart">
         ${l ? u`<div class="chart-scroll">
-              <div style="width:${_.w}px">${A}</div>
-            </div>` : A}
+              <div style="width:${_.w}px">${k}</div>
+            </div>` : k}
       </div>
       ${c.length ? u`<div class="stats">
             ${c.map(
@@ -2839,9 +2879,9 @@ let M = class extends G {
       const x = this._resolveGoal(r.start);
       let m = NaN;
       if (Number.isFinite(x) && x !== d ? m = (x - c) / (x - d) * 100 : d > 0 && (m = o === "atmost" ? d / c * 100 : c / d * 100), !Number.isNaN(m)) {
-        const b = Math.round(Math.min(Math.max(m, 0), 999)), S = b >= 100;
-        return u`<div class="status ${S ? "good" : ""}">
-          <ha-icon .icon=${S ? "mdi:check-circle" : "mdi:flag-outline"}></ha-icon>
+        const b = Math.round(Math.min(Math.max(m, 0), 999)), A = b >= 100;
+        return u`<div class="status ${A ? "good" : ""}">
+          <ha-icon .icon=${A ? "mdi:check-circle" : "mdi:flag-outline"}></ha-icon>
           <span>${$(this.hass, "goal")}: ${b} %</span>
         </div>`;
       }
@@ -2849,7 +2889,7 @@ let M = class extends G {
     if (a === "none") return p;
     const l = _e(e.filled);
     if (!Number.isFinite(l)) return p;
-    const h = e.filled.find(Number.isFinite) ?? 0, g = Math.abs(l) < Math.max(Math.abs(h) * 5e-3, 1e-9), y = g || a === "neutral" ? "neutral" : l > 0 == (a === "up_good") ? "good" : "bad", _ = g ? "mdi:arrow-right" : l > 0 ? "mdi:arrow-top-right" : "mdi:arrow-bottom-right", A = r.type && z[r.type] ? r.type : "custom", k = r.duration ?? z[A].duration, f = g ? $(this.hass, "stable") : k ? oe(Math.abs(l), s || void 0) : `${w(this.hass, Math.abs(l), i)}${s ? ` ${s}` : ""}`;
+    const h = e.filled.find(Number.isFinite) ?? 0, g = Math.abs(l) < Math.max(Math.abs(h) * 5e-3, 1e-9), y = g || a === "neutral" ? "neutral" : l > 0 == (a === "up_good") ? "good" : "bad", _ = g ? "mdi:arrow-right" : l > 0 ? "mdi:arrow-top-right" : "mdi:arrow-bottom-right", k = r.type && z[r.type] ? r.type : "custom", S = r.duration ?? z[k].duration, f = g ? $(this.hass, "stable") : S ? oe(Math.abs(l), s || void 0) : `${w(this.hass, Math.abs(l), i)}${s ? ` ${s}` : ""}`;
     return u`<div class="status ${y}">
       <span class="dotarrow"><ha-icon .icon=${_}></ha-icon></span>
       <span>${f}</span>
@@ -2891,9 +2931,9 @@ let M = class extends G {
 M.ANCHOR_POS = {
   head: { x: 50, y: 9, side: "right" },
   chest: { x: 56, y: 32, side: "right" },
-  "arm-left": { x: 30, y: 33, side: "left" },
-  "arm-right": { x: 70, y: 33, side: "right" },
-  belly: { x: 54, y: 55, side: "right" },
+  "arm-left": { x: 31, y: 27, side: "left" },
+  "arm-right": { x: 67, y: 20, side: "left" },
+  belly: { x: 50, y: 54, side: "right" },
   legs: { x: 57, y: 75, side: "right" }
 };
 M.styles = Qe`
@@ -3573,6 +3613,36 @@ M.styles = Qe`
       width: 100%;
       height: auto;
       display: block;
+    }
+    .bodyimg {
+      width: 100%;
+      height: auto;
+      display: block;
+      position: relative;
+    }
+    .body-glow {
+      position: absolute;
+      inset: -4%;
+      border-radius: 50%;
+      background: radial-gradient(
+        closest-side,
+        color-mix(in srgb, var(--hc-glow) 45%, transparent),
+        transparent
+      );
+      pointer-events: none;
+    }
+    .body-fever {
+      position: absolute;
+      top: 0;
+      left: 20%;
+      right: 20%;
+      height: 42%;
+      background: radial-gradient(
+        closest-side,
+        color-mix(in srgb, var(--error-color, #e53935) 45%, transparent),
+        transparent
+      );
+      pointer-events: none;
     }
     .bodyshape .solid {
       stroke: var(--hc-body-stroke);

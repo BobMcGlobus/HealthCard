@@ -89,41 +89,75 @@ export function bodyFigure(o: BodyOpts): TemplateResult {
       ? lerpParams(presets[1], presets[0], Math.min(-s / 0.35, 1))
       : lerpParams(presets[1], presets[2], Math.min(s / 0.85, 1));
 
-  // right half of the outline, top to bottom (x offsets from center 100)
-  const right: Pt[] = [
-    [100, 6], // crown
-    [114, 11],
-    [118, 28], // head side
-    [112, 45],
-    [106.5, 54], // jaw → neck (concave)
-    [106, 61],
-    [100 + p.shoulder * 0.75, 68],
-    [100 + p.shoulder + 5, 80], // round shoulder
-    [100 + p.arm, 120], // upper arm resting against the body
-    [100 + p.hand + 1, 155],
-    [100 + p.hand - 2, 176], // hand, rounded tip
-    [100 + p.waist + 4, 170], // waist notch between hand and hip
-    [100 + p.belly + 3, 182],
-    [100 + p.hip, 200], // hip
+  const sh = p.shoulder;
+  // Asymmetric outline: the viewer-right arm flexes (biceps pose, carries the
+  // muscle-mass anchor), the viewer-left arm rests (carries the BP cuff).
+  // Head is rounder with a real neck notch to avoid the alien look.
+  const pts: Pt[] = [
+    // head + neck (right side)
+    [100, 10],
+    [112, 14],
+    [116.5, 29],
+    [111, 43],
+    [105.5, 51],
+    [105, 60], // neck notch
+    // trapezius + marked shoulder
+    [100 + sh * 0.55, 66],
+    [100 + sh + 2, 75],
+    // flexed arm: biceps bump → elbow → raised forearm → fist
+    [100 + sh + 12, 64],
+    [100 + p.arm + 12, 68],
+    [100 + p.arm + 20, 88], // elbow, clearly outside
+    [100 + p.arm + 22, 62],
+    [100 + p.arm + 15, 44], // fist at ear height
+    [100 + p.arm + 6, 45],
+    [100 + p.arm + 2, 62],
+    [100 + p.arm - 4, 80], // elbow crease
+    [100 + p.waist + 8, 102], // underside of upper arm → armpit
+    [100 + p.waist + 1, 128],
+    [100 + p.waist, 152], // free waist on the flexing side
+    [100 + p.belly + 2, 180],
+    [100 + p.hip, 200],
+    // right leg
     [100 + p.hip - 2, 228],
-    [100 + p.knee + 3, 262], // knee
-    [100 + p.ankle + 3, 298], // ankle
-    [100 + p.ankle + 8, 313], // small foot
+    [100 + p.knee + 3, 262],
+    [100 + p.ankle + 3, 298],
+    [100 + p.ankle + 8, 313],
     [103, 316],
-    [103, 290], // inner leg
+    [103, 290],
     [103.5, 258],
     [102, 230],
     [100, 220], // crotch
+    // left leg (mirrored)
+    [98, 230],
+    [96.5, 258],
+    [97, 290],
+    [97, 316],
+    [100 - p.ankle - 8, 313],
+    [100 - p.ankle - 3, 298],
+    [100 - p.knee - 3, 262],
+    [100 - p.hip + 2, 228],
+    [100 - p.hip, 200],
+    // left side with resting arm (hand, waist notch)
+    [100 - p.belly - 3, 182],
+    [100 - p.waist - 4, 170],
+    [100 - p.hand + 2, 176],
+    [100 - p.hand - 1, 155],
+    [100 - p.arm, 120],
+    [100 - sh - 5, 80],
+    [100 - sh * 0.55, 66],
+    // neck + head (left side)
+    [95, 60],
+    [94.5, 51],
+    [89, 43],
+    [83.5, 29],
+    [88, 14],
   ];
-  const left = right
-    .slice(1, right.length - 1)
-    .reverse()
-    .map(([x, y]): Pt => [200 - x, y]);
-  const outline = smoothClosed([...right, ...left]);
+  const outline = smoothClosed(pts);
 
-  const cuffSide = o.cuff === 'left' ? -1 : 1;
-  const cuffX = 100 + cuffSide * (p.arm - 3);
-  const cuffAngle = cuffSide * 12;
+  // the cuff always sits on the resting (viewer-left) upper arm
+  const cuffX = 100 - (sh + 7);
+  const cuffAngle = -14;
 
   return html`<svg class="bodyfig" viewBox="0 0 200 330" aria-hidden="true">
     <defs>
@@ -153,7 +187,7 @@ export function bodyFigure(o: BodyOpts): TemplateResult {
 
     ${o.fever > 0
       ? svg`
-        <ellipse cx="100" cy="28" rx="26" ry="26" fill="url(#hc-fever-glow)"
+        <ellipse cx="100" cy="30" rx="25" ry="25" fill="url(#hc-fever-glow)"
           opacity=${o.fever}/>
         <ellipse cx="100" cy="105" rx="36" ry="32" fill="url(#hc-fever-glow)"
           opacity=${o.fever * 0.9}/>`
@@ -161,18 +195,18 @@ export function bodyFigure(o: BodyOpts): TemplateResult {
 
     ${o.tired > 0
       ? svg`
-        <path d="M 89.5 34 q 3.5 3 7 0" fill="none" stroke-linecap="round"
+        <path d="M 90.5 33 q 3 3 6 0" fill="none" stroke-linecap="round"
           stroke="color-mix(in srgb, var(--primary-text-color) 55%, transparent)"
-          stroke-width="1.7" opacity=${0.25 + o.tired * 0.5}/>
-        <path d="M 103.5 34 q 3.5 3 7 0" fill="none" stroke-linecap="round"
+          stroke-width="1.6" opacity=${0.25 + o.tired * 0.5}/>
+        <path d="M 103.5 33 q 3 3 6 0" fill="none" stroke-linecap="round"
           stroke="color-mix(in srgb, var(--primary-text-color) 55%, transparent)"
-          stroke-width="1.7" opacity=${0.25 + o.tired * 0.5}/>`
+          stroke-width="1.6" opacity=${0.25 + o.tired * 0.5}/>`
       : nothing}
 
     ${o.cuff
-      ? svg`<rect x=${cuffX - 11} y="100" width="22" height="12" rx="4"
+      ? svg`<rect x=${cuffX - 10} y="82" width="20" height="13" rx="4"
           fill="var(--hc-accent)" stroke="color-mix(in srgb, #fff 35%, transparent)"
-          stroke-width="1" transform="rotate(${cuffAngle} ${cuffX} 106)"/>`
+          stroke-width="1" transform="rotate(${cuffAngle} ${cuffX} 88)"/>`
       : nothing}
   </svg>`;
 }
