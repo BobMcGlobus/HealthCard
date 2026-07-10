@@ -25,6 +25,12 @@ const LABELS: Record<string, Record<string, string>> = {
     layout_carousel: 'Carousel (scrollable)',
     background: 'Card background',
     flush: 'Edge to edge (no outer padding)',
+    card_style: 'Style',
+    style_default: 'HA default',
+    style_withings: 'Withings',
+    style_glass: 'Liquid Glass',
+    style_material: 'Material You',
+    style_bubble: 'Bubble',
     goal_type: 'Goal direction',
     gt_atleast: 'Reach at least',
     gt_atmost: 'Stay at/below (e.g. lose weight)',
@@ -32,7 +38,8 @@ const LABELS: Record<string, Record<string, string>> = {
     start: 'Start value (number)',
     start_entity: 'Start sensor (overrides number)',
     tap_action: 'Tap action',
-    ta_popup: 'Popup (more info)',
+    ta_popup: 'Popup (detail view)',
+    'ta_more-info': 'More-info (HA dialog)',
     ta_link: 'Link',
     ta_none: 'Nothing',
     link: 'Link (path or URL)',
@@ -82,6 +89,12 @@ const LABELS: Record<string, Record<string, string>> = {
     layout_carousel: 'Slideshow (scrollbar)',
     background: 'Kartenhintergrund',
     flush: 'Randlos (kein Außenabstand)',
+    card_style: 'Stil',
+    style_default: 'HA-Standard',
+    style_withings: 'Withings',
+    style_glass: 'Liquid Glass',
+    style_material: 'Material You',
+    style_bubble: 'Bubble',
     goal_type: 'Zielrichtung',
     gt_atleast: 'Mindestens erreichen',
     gt_atmost: 'Höchstens (z. B. abnehmen)',
@@ -89,7 +102,8 @@ const LABELS: Record<string, Record<string, string>> = {
     start: 'Startwert (Zahl)',
     start_entity: 'Start-Sensor (hat Vorrang)',
     tap_action: 'Klick-Aktion',
-    ta_popup: 'Popup (Details)',
+    ta_popup: 'Popup (Detailansicht)',
+    'ta_more-info': 'More-Info (HA-Dialog)',
     ta_link: 'Link',
     ta_none: 'Nichts',
     link: 'Link (Pfad oder URL)',
@@ -164,6 +178,17 @@ export class HealthCardEditor extends LitElement {
                   { value: 'grid', label: this._label('layout_grid') },
                   { value: 'carousel', label: this._label('layout_carousel') },
                 ],
+              },
+            },
+          },
+          {
+            name: 'card_style',
+            selector: {
+              select: {
+                mode: 'dropdown',
+                options: ['default', 'withings', 'glass', 'material', 'bubble'].map(
+                  (v) => ({ value: v, label: this._label(`style_${v}`) })
+                ),
               },
             },
           },
@@ -258,7 +283,7 @@ export class HealthCardEditor extends LitElement {
             selector: {
               select: {
                 mode: 'dropdown',
-                options: opts(['popup', 'link', 'none'], 'ta'),
+                options: opts(['popup', 'more-info', 'link', 'none'], 'ta'),
               },
             },
           },
@@ -294,7 +319,13 @@ export class HealthCardEditor extends LitElement {
     return html`
       <ha-form
         .hass=${this.hass}
-        .data=${{ tiles: true, background: true, layout: 'grid', ...this._config }}
+        .data=${{
+          tiles: true,
+          background: true,
+          layout: 'grid',
+          card_style: 'withings',
+          ...this._config,
+        }}
         .schema=${this._topSchema()}
         .computeLabel=${(s: { name: string }) => this._label(s.name)}
         @value-changed=${this._topChanged}

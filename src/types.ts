@@ -34,7 +34,9 @@ export type Aggregate = 'mean' | 'min' | 'max' | 'last' | 'sum';
 export type TrendMode = 'up_good' | 'down_good' | 'neutral' | 'none';
 /** atleast: goal reached at/above the value (steps); atmost: at/below (target weight) */
 export type GoalType = 'atleast' | 'atmost';
-export type TapAction = 'popup' | 'link' | 'none';
+/** popup = built-in detail popup, more-info = native HA dialog */
+export type TapAction = 'popup' | 'more-info' | 'link' | 'none';
+export type CardStyle = 'default' | 'withings' | 'glass' | 'material' | 'bubble';
 
 export interface SleepPhases {
   deep?: string;
@@ -108,6 +110,8 @@ export interface HealthCardConfig {
   tiles?: boolean;
   /** grid (default) or carousel: horizontally scrollable tiles */
   layout?: 'grid' | 'carousel';
+  /** Visual style: default (plain HA), withings (default), glass, material, bubble */
+  card_style?: CardStyle;
   /** false: remove the ha-card background/shadow (for use inside containers) */
   background?: boolean;
   /** true: no outer padding, tiles run edge to edge */

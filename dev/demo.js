@@ -251,3 +251,15 @@ document.getElementById('bg').addEventListener('click', () => {
   const off = current.background !== false;
   apply({ background: off ? false : true, flush: off });
 });
+
+const STYLES = ['withings', 'default', 'glass', 'material', 'bubble'];
+document.getElementById('style').addEventListener('click', () => {
+  const next = STYLES[(STYLES.indexOf(current.card_style ?? 'withings') + 1) % STYLES.length];
+  apply({ card_style: next });
+  document.getElementById('style').textContent = `Stil: ${next}`;
+  // glass needs something colorful behind it to show the blur
+  document.body.style.background =
+    next === 'glass'
+      ? 'linear-gradient(135deg, #4568dc 0%, #b06ab3 50%, #ee9ca7 100%) fixed'
+      : '';
+});

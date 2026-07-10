@@ -29,6 +29,11 @@ const STRINGS: Record<string, Record<string, string>> = {
     phase_light: 'Light',
     phase_rem: 'REM',
     phase_awake: 'Awake',
+    close: 'Close',
+    open_ha: 'Open in Home Assistant',
+    stat_min: 'Min',
+    stat_avg: 'Avg',
+    stat_max: 'Max',
   },
   de: {
     goal: 'Ziel',
@@ -58,6 +63,11 @@ const STRINGS: Record<string, Record<string, string>> = {
     phase_light: 'Leichter Schlaf',
     phase_rem: 'REM',
     phase_awake: 'Wach',
+    close: 'Schließen',
+    open_ha: 'In Home Assistant öffnen',
+    stat_min: 'Min',
+    stat_avg: 'Ø',
+    stat_max: 'Max',
   },
 };
 

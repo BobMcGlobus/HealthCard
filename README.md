@@ -17,8 +17,10 @@ Trend-Pfeilen und Zielen. Vollständig Theme-kompatibel (Light & Dark).
 - 💯 **Gesamt-Score-Kachel** im Withings-Stil (Punktering, „96 von 100")
 - 🪥 **Zähneputzen-Preset** (z. B. Oral-B iO)
 - 🎠 **Carousel-Layout**: alle Kacheln horizontal scrollbar auf minimalem Platz
-- 🫥 **Einbettbar**: Kartenhintergrund abschaltbar + randlose Darstellung für Container-Karten
-- 🖱️ **Klick-Aktion pro Kachel**: Popup (More-Info), Link oder nichts
+- 🫥 **Einbettbar**: Kartenhintergrund abschaltbar (rendert dann ganz ohne `ha-card` — keine Theme-Border) + randlose Darstellung für Container-Karten
+- 🔍 **Detail-Popup**: Klick auf eine Kachel öffnet eine eigene Detailansicht mit großem Verlauf, Wochentagen, Min/Ø/Max und allen Serien/Phasen
+- 🖱️ **Klick-Aktion pro Kachel**: Popup (Detailansicht), More-Info (HA-Dialog), Link oder nichts
+- 🎨 **5 Kartenstile** über `card_style`: HA-Standard, Withings (Default), Liquid Glass, Material You, Bubble
 - 🖱️ **Visueller Editor**: Metriken per UI hinzufügen, sortieren, konfigurieren
 - 🌍 Deutsch & Englisch (automatisch nach HA-Sprache)
 
@@ -118,6 +120,7 @@ metrics: [...]
 | `days`       | number  | `7`     | History-Zeitraum in Tagen (für alle Metriken)              |
 | `columns`    | number  | `1`     | Kachel-Spalten (1–3)                                       |
 | `layout`     | string  | `grid`  | `grid` oder `carousel` (horizontal scrollbar)              |
+| `card_style` | string  | `withings` | `default` (HA-Look), `withings`, `glass` (Liquid Glass), `material` (Material You), `bubble` |
 | `tiles`      | boolean | `true`  | Metriken als Kacheln (`false` = flache Zeilen)             |
 | `background` | boolean | `true`  | `false`: Kartenhintergrund/-schatten entfernen (Container) |
 | `flush`      | boolean | `false` | `true`: kein Außenabstand, Kacheln bis zum Rand            |
@@ -142,7 +145,7 @@ metrics: [...]
 | `goal`      | number/string | Zielwert **oder Sensor-Entität** → „Ziel: x %", Ziellinie, Fortschrittsbalken |
 | `start`     | number/string | Startwert oder Sensor. Wenn gesetzt: Ziel-% = `(start − Wert) / (start − Ziel)` — der Fortschritt auf dem Weg zum Ziel (funktioniert für Ab- und Zunehmen) |
 | `goal_type` | string | Nur ohne `start`: `atleast` (Default) oder `atmost` (Ziel erreicht bei ≤ Zielwert) |
-| `tap_action`| string | `popup` (Default, More-Info-Dialog), `link`, `none`                           |
+| `tap_action`| string | `popup` (Default, eingebaute Detailansicht), `more-info` (HA-Dialog), `link`, `none` |
 | `link`      | string | Dashboard-Pfad oder URL für `tap_action: link`                                |
 | `max`       | number | Nur `score`: Maximalwert (Default 100)                                        |
 | `phases`    | object | Nur `sleep`: `deep`/`light`/`rem`/`awake` Entitäten für die Phasen-Aufschlüsselung |
