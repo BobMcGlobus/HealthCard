@@ -31,7 +31,7 @@ import { barChart, lineChart, scoreGraphic } from './charts';
 import type { AxisMark, ChartOpts } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.5.0';
+const CARD_VERSION = '0.5.1';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
@@ -1249,20 +1249,45 @@ export class HealthCard extends LitElement {
       -webkit-backdrop-filter: blur(10px) saturate(1.4);
       backdrop-filter: blur(10px) saturate(1.4);
     }
+    /* apple-style lens: frosted disc lit from the top left, deep shadow */
     .s-glass .scorewrap::before {
       content: '';
       grid-area: 1 / 1;
       place-self: center;
-      width: 56%;
+      width: 58%;
       aspect-ratio: 1;
       border-radius: 50%;
-      background: color-mix(in srgb, var(--hc-card-bg) 45%, transparent);
-      border: 1px solid color-mix(in srgb, #fff 28%, transparent);
+      background:
+        radial-gradient(
+          120% 120% at 30% 18%,
+          color-mix(in srgb, #fff 38%, transparent),
+          transparent 62%
+        ),
+        color-mix(in srgb, var(--hc-card-bg) 38%, transparent);
+      border: 1px solid color-mix(in srgb, #fff 45%, transparent);
       box-shadow:
-        inset 0 1px 0 color-mix(in srgb, #fff 35%, transparent),
-        0 4px 16px color-mix(in srgb, #000 10%, transparent);
-      -webkit-backdrop-filter: blur(10px) saturate(1.3);
-      backdrop-filter: blur(10px) saturate(1.3);
+        inset 0 1.5px 1px color-mix(in srgb, #fff 55%, transparent),
+        inset 0 -10px 18px color-mix(in srgb, var(--hc-accent) 12%, transparent),
+        0 12px 28px color-mix(in srgb, #000 20%, transparent);
+      -webkit-backdrop-filter: blur(14px) saturate(1.6);
+      backdrop-filter: blur(14px) saturate(1.6);
+    }
+    /* specular gleam sweeping over the upper left of the lens */
+    .s-glass .scorewrap::after {
+      content: '';
+      grid-area: 1 / 1;
+      place-self: center;
+      width: 58%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: radial-gradient(
+        48% 32% at 32% 16%,
+        rgba(255, 255, 255, 0.5),
+        transparent 72%
+      );
+      pointer-events: none;
+      position: relative;
+      z-index: 2;
     }
     /* the frosted disc forms a stacking context that would otherwise paint
        above the in-flow number/ring — lift both above it */
@@ -1270,6 +1295,21 @@ export class HealthCard extends LitElement {
     .s-glass .scoreinner {
       position: relative;
       z-index: 1;
+    }
+    .s-glass .scorenum {
+      text-shadow: 0 1px 3px color-mix(in srgb, #000 18%, transparent);
+    }
+    @keyframes hc-pulse {
+      0%,
+      100% {
+        opacity: 0.45;
+      }
+      50% {
+        opacity: 0.9;
+      }
+    }
+    .scorering .glowpulse {
+      animation: hc-pulse 2.6s ease-in-out infinite;
     }
     .s-glass .dialog {
       background: color-mix(in srgb, var(--hc-card-bg) 55%, transparent);

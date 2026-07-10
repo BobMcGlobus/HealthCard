@@ -216,7 +216,7 @@ export function scoreRing(scoreColor: string, ratio: number): TemplateResult {
   </svg>`;
 }
 
-/** Clean progress ring (default, glass, bubble, mirror score variants). */
+/** Clean progress ring (default, bubble, mirror score variants). */
 export function scoreArc(color: string, ratio: number, width = 10): TemplateResult {
   const R = 82;
   const C = 2 * Math.PI * R;
@@ -225,6 +225,49 @@ export function scoreArc(color: string, ratio: number, width = 10): TemplateResu
       stroke-width=${width}/>
     <circle cx="100" cy="100" r=${R} fill="none" stroke=${color} stroke-width=${width}
       stroke-linecap="round" stroke-dasharray="${C * Math.max(ratio, 0.02)} ${C}"
+      transform="rotate(-90 100 100)"/>
+  </svg>`;
+}
+
+/**
+ * Liquid-glass progress ring: a glass tube with specular edge highlights and
+ * a colored glow that grows with the score; at (nearly) full score an outer
+ * halo pulses softly.
+ */
+export function scoreArcGlass(color: string, ratio: number): TemplateResult {
+  const R = 79;
+  const w = 13;
+  const C = 2 * Math.PI * R;
+  const dash = `${C * Math.max(ratio, 0.02)} ${C}`;
+  const R2 = R + w * 0.27; // specular line rides the outer tube edge
+  const C2 = 2 * Math.PI * R2;
+  const glow = 0.18 + ratio * 0.5;
+  const full = ratio >= 0.95;
+  return html`<svg class="scorering" viewBox="0 0 200 200" aria-hidden="true">
+    <defs>
+      <filter id="hc-glow" x="-40%" y="-40%" width="180%" height="180%">
+        <feGaussianBlur stdDeviation="6" />
+      </filter>
+    </defs>
+    ${full
+      ? svg`<circle cx="100" cy="100" r="96" fill="none" stroke=${color}
+          stroke-width="2.5" opacity="0.4" filter="url(#hc-glow)" class="glowpulse"/>`
+      : nothing}
+    <circle cx="100" cy="100" r=${R} fill="none" stroke=${color}
+      stroke-width=${w + 7} stroke-linecap="round" stroke-dasharray=${dash}
+      transform="rotate(-90 100 100)" filter="url(#hc-glow)" opacity=${glow}
+      class=${full ? 'glowpulse' : ''}/>
+    <circle cx="100" cy="100" r=${R} fill="none" stroke-width=${w}
+      stroke="color-mix(in srgb, ${color} 13%, transparent)"/>
+    <circle cx="100" cy="100" r=${R + w / 2 - 0.6} fill="none" stroke-width="1"
+      stroke="color-mix(in srgb, #fff 30%, transparent)"/>
+    <circle cx="100" cy="100" r=${R - w / 2 + 0.6} fill="none" stroke-width="1"
+      stroke="color-mix(in srgb, #fff 12%, transparent)"/>
+    <circle cx="100" cy="100" r=${R} fill="none" stroke=${color} stroke-width=${w}
+      stroke-linecap="round" stroke-dasharray=${dash} transform="rotate(-90 100 100)"/>
+    <circle cx="100" cy="100" r=${R2} fill="none" stroke="rgba(255, 255, 255, 0.55)"
+      stroke-width="1.6" stroke-linecap="round"
+      stroke-dasharray="${C2 * Math.max(ratio, 0.02)} ${C2}"
       transform="rotate(-90 100 100)"/>
   </svg>`;
 }
@@ -266,6 +309,7 @@ export function scoreGraphic(
   if (variant === 'material') return scoreScallop(accent, scoreColor, ratio);
   if (variant === 'bubble') return scoreArc(scoreColor, ratio, 15);
   if (variant === 'mirror') return scoreArc('#fff', ratio, 7);
-  if (variant === 'default' || variant === 'glass') return scoreArc(scoreColor, ratio, 10);
+  if (variant === 'glass') return scoreArcGlass(scoreColor, ratio);
+  if (variant === 'default') return scoreArc(scoreColor, ratio, 10);
   return scoreRing(scoreColor, ratio);
 }
