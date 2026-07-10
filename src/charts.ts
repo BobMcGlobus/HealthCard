@@ -6,6 +6,15 @@ export interface LineSeries {
   color: string;
 }
 
+export interface ChartOpts {
+  /** viewBox width (default 220) */
+  w?: number;
+  /** viewBox height (default 60) */
+  h?: number;
+  /** draw ring dots on line charts (default true) */
+  dots?: boolean;
+}
+
 const W = 220;
 const H = 60;
 const PAD = 7;
@@ -22,13 +31,19 @@ function scale(all: number[]): { lo: number; hi: number } {
  * Withings-style smoothed sparkline with ring dots on each day.
  * Supports multiple series sharing one y-scale.
  */
-export function lineChart(seriesList: LineSeries[]): TemplateResult | typeof nothing {
+export function lineChart(
+  seriesList: LineSeries[],
+  opts: ChartOpts = {}
+): TemplateResult | typeof nothing {
+  const w = opts.w ?? W;
+  const h = opts.h ?? H;
+  const showDots = opts.dots ?? true;
   const drawable = seriesList.filter((s) => s.values.some(Number.isFinite));
   if (!drawable.length) return nothing;
   const { lo, hi } = scale(drawable.flatMap((s) => s.values));
   const n = Math.max(...drawable.map((s) => s.values.length));
-  const x = (i: number) => PAD + (i * (W - 2 * PAD)) / Math.max(n - 1, 1);
-  const y = (v: number) => H - PAD - ((v - lo) / (hi - lo)) * (H - 2 * PAD);
+  const x = (i: number) => PAD + (i * (w - 2 * PAD)) / Math.max(n - 1, 1);
+  const y = (v: number) => h - PAD - ((v - lo) / (hi - lo)) * (h - 2 * PAD);
 
   const parts = drawable.map((s) => {
     const pts = s.values
@@ -43,43 +58,50 @@ export function lineChart(seriesList: LineSeries[]): TemplateResult | typeof not
     return svg`
       <path d=${d} fill="none" stroke=${s.color} stroke-width="2.2"
         stroke-linecap="round" stroke-linejoin="round"/>
-      ${pts.map(
-        (p) => svg`<circle cx=${p.x} cy=${p.y} r="3.1" fill="var(--hc-dot-fill)"
-          stroke=${s.color} stroke-width="2"/>`
-      )}
+      ${
+        showDots
+          ? pts.map(
+              (p) => svg`<circle cx=${p.x} cy=${p.y} r="3.1" fill="var(--hc-dot-fill)"
+                stroke=${s.color} stroke-width="2"/>`
+            )
+          : nothing
+      }
     `;
   });
 
-  return html`<svg class="chart" viewBox="0 0 ${W} ${H}" aria-hidden="true">${parts}</svg>`;
+  return html`<svg class="chart" viewBox="0 0 ${w} ${h}" aria-hidden="true">${parts}</svg>`;
 }
 
 /** Rounded daily bars with an optional dashed goal line. */
 export function barChart(
   values: number[],
   color: string,
-  goal?: number
+  goal?: number,
+  opts: ChartOpts = {}
 ): TemplateResult | typeof nothing {
+  const w = opts.w ?? W;
+  const h = opts.h ?? H;
   if (!values.some((v) => Number.isFinite(v) && v > 0)) return nothing;
   const vals = values.map((v) => (Number.isFinite(v) && v > 0 ? v : 0));
   const max = Math.max(...vals, goal ?? 0) || 1;
   const n = vals.length;
-  const slot = (W - 2 * PAD) / n;
+  const slot = (w - 2 * PAD) / n;
   const bw = Math.min(slot * 0.55, 14);
-  const y = (v: number) => (v / max) * (H - 2 * PAD);
+  const y = (v: number) => (v / max) * (h - 2 * PAD);
 
   const bars = vals.map((v, i) => {
     const bh = Math.max(y(v), v > 0 ? 3 : 1.5);
     const bx = PAD + i * slot + (slot - bw) / 2;
-    return svg`<rect x=${bx} y=${H - PAD - bh} width=${bw} height=${bh}
+    return svg`<rect x=${bx} y=${h - PAD - bh} width=${bw} height=${bh}
       rx=${Math.min(bw / 2, 4)} fill=${color} opacity=${v > 0 ? 1 : 0.25}/>`;
   });
 
   const goalLine = Number.isFinite(goal as number)
-    ? svg`<line x1=${PAD} x2=${W - PAD} y1=${H - PAD - y(goal!)} y2=${H - PAD - y(goal!)}
+    ? svg`<line x1=${PAD} x2=${w - PAD} y1=${h - PAD - y(goal!)} y2=${h - PAD - y(goal!)}
         stroke=${color} stroke-width="1" stroke-dasharray="3 3" opacity="0.5"/>`
     : nothing;
 
-  return html`<svg class="chart" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+  return html`<svg class="chart" viewBox="0 0 ${w} ${h}" aria-hidden="true">
     ${goalLine}${bars}
   </svg>`;
 }

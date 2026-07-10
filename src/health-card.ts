@@ -17,12 +17,19 @@ import { PRESETS, SERIES_PALETTE, resolveColor } from './presets';
 import type { MetricPreset } from './presets';
 import { lang, t } from './i18n';
 import { fmtDuration, fmtLastUpdated, fmtNumber, joinUnit } from './format';
-import { bucketDaily, fetchHistory, fillGaps, trendDelta } from './history';
-import type { HistoryMap } from './history';
+import {
+  bucketDaily,
+  bucketsFromStats,
+  fetchHistory,
+  fetchStats,
+  fillGaps,
+  trendDelta,
+} from './history';
+import type { HistoryMap, StatsMap } from './history';
 import { barChart, lineChart, scoreGraphic } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.3.0';
+const CARD_VERSION = '0.4.0';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
@@ -65,6 +72,9 @@ export class HealthCard extends LitElement {
   @state() private _config?: HealthCardConfig;
   @state() private _history: HistoryMap = {};
   @state() private _popup: number | null = null;
+  @state() private _popupDays: number | null = null;
+  @state() private _stats: { sig: string; data: StatsMap } | null = null;
+  private _statsFetching = false;
 
   private _onKeydown = (e: KeyboardEvent): void => {
     if (e.key === 'Escape' && this._popup !== null) this._popup = null;
@@ -124,6 +134,51 @@ export class HealthCard extends LitElement {
   protected updated(changed: PropertyValues): void {
     super.updated(changed);
     if (changed.has('hass') || changed.has('_config')) void this._maybeFetch();
+    this._maybeFetchStats();
+    if (changed.has('_popup') || changed.has('_popupDays') || changed.has('_stats')) {
+      // long-range charts scroll to the most recent data
+      const sc = this.renderRoot?.querySelector('.chart-scroll');
+      if (sc) sc.scrollLeft = sc.scrollWidth;
+    }
+  }
+
+  /** Long-term statistics for popup ranges beyond the recorder purge window. */
+  private _maybeFetchStats(): void {
+    if (!this.hass || this._popup === null || !this._config) return;
+    const days = this._popupDays ?? 0;
+    if (days <= 10) return;
+    const m = this._config.metrics[this._popup];
+    if (!m) return;
+    const ids = new Set<string>();
+    for (const s of this._series(m)) if (s.entity) ids.add(s.entity);
+    for (const id of Object.values(m.phases ?? {})) if (id) ids.add(id);
+    if (m.score_entity) ids.add(m.score_entity);
+    const list = [...ids].filter((id) => this.hass.states[id]);
+    const sig = `${days}|${list.join(',')}`;
+    if (!list.length || this._stats?.sig === sig || this._statsFetching) return;
+    this._statsFetching = true;
+    fetchStats(this.hass, list, days)
+      .then((data) => {
+        this._stats = { sig, data };
+      })
+      .catch((e) => console.warn('health-card: statistics fetch failed', e))
+      .finally(() => {
+        this._statsFetching = false;
+      });
+  }
+
+  /** Day buckets for an entity, preferring long-term statistics when asked. */
+  private _bucketsFor(
+    id: string,
+    days: number,
+    aggregate: Aggregate,
+    preferStats: boolean
+  ): number[] {
+    if (preferStats && this._stats) {
+      const rows = this._stats.data[id];
+      if (rows?.length) return bucketsFromStats(rows, days, aggregate);
+    }
+    return bucketDaily(this._history[id] ?? [], days, aggregate);
   }
 
   private _watchedEntities(): string[] {
@@ -132,6 +187,7 @@ export class HealthCard extends LitElement {
       for (const s of this._series(m)) if (s.entity) ids.add(s.entity);
       for (const id of m.secondary ?? []) ids.add(id);
       for (const id of Object.values(m.phases ?? {})) if (id) ids.add(id);
+      if (m.score_entity) ids.add(m.score_entity);
     }
     return [...ids].filter((id) => this.hass?.states[id]);
   }
@@ -163,6 +219,8 @@ export class HealthCard extends LitElement {
       this._moreInfo(entityId);
       return;
     }
+    // sleep with a score entity opens on the month view for the calendar
+    this._popupDays = m.type === 'sleep' && m.score_entity ? 30 : null;
     this._popup = index;
   }
 
@@ -263,7 +321,7 @@ export class HealthCard extends LitElement {
   }
 
   /** Builds the shared render context for a metric (used by tile and popup). */
-  private _ctx(m: MetricConfig): MetricCtx {
+  private _ctx(m: MetricConfig, daysOverride?: number): MetricCtx {
     const type = (m.type && PRESETS[m.type] ? m.type : 'custom') as MetricType;
     const preset = PRESETS[type];
     const accent = resolveColor(m.color) ?? resolveColor(preset.color)!;
@@ -279,7 +337,8 @@ export class HealthCard extends LitElement {
     const primaryState = series[0]?.entity
       ? this.hass.states[series[0].entity]
       : undefined;
-    const days = Math.max(1, m.days ?? this._config?.days ?? 7);
+    const days = Math.max(1, daysOverride ?? m.days ?? this._config?.days ?? 7);
+    const preferStats = (daysOverride ?? 0) > 10;
     const graph = m.graph ?? preset.graph;
     const aggregate = m.aggregate ?? preset.aggregate;
     const trendMode = m.trend ?? preset.trend;
@@ -292,7 +351,7 @@ export class HealthCard extends LitElement {
       '';
 
     const data: SeriesData[] = series.map((s, i) => {
-      const buckets = bucketDaily(this._history[s.entity] ?? [], days, aggregate);
+      const buckets = this._bucketsFor(s.entity, days, aggregate, preferStats);
       return {
         ...s,
         colorResolved:
@@ -314,7 +373,7 @@ export class HealthCard extends LitElement {
         .filter(Boolean) as string[];
       if (sleepIds.length) {
         const perPhase = sleepIds.map((id) =>
-          bucketDaily(this._history[id] ?? [], days, aggregate)
+          this._bucketsFor(id, days, aggregate, preferStats)
         );
         const combined = Array.from({ length: days }, (_, i) => {
           const vals = perPhase.map((b) => b[i]).filter(Number.isFinite);
@@ -387,6 +446,7 @@ export class HealthCard extends LitElement {
         <div class="head">
           <div class="iconchip"><ha-icon .icon=${c.icon}></ha-icon></div>
           <div class="name">${c.name}</div>
+          ${this._renderScoreBadge(m)}
           <div class="time">
             ${fmtLastUpdated(this.hass, c.primaryState.last_updated)}
           </div>
@@ -473,6 +533,49 @@ export class HealthCard extends LitElement {
     return 'var(--error-color, #e53935)';
   }
 
+  /** Traffic-light badge for a metric's score_entity (e.g. sleep score). */
+  private _renderScoreBadge(m: MetricConfig): TemplateResult | typeof nothing {
+    if (!m.score_entity) return nothing;
+    const v = this._numeric(this.hass.states[m.score_entity]);
+    if (!Number.isFinite(v)) return nothing;
+    return html`<span class="scorebadge" style="background:${this._scoreColor(v, 100)}">
+      ${fmtNumber(this.hass, v, 0)}
+    </span>`;
+  }
+
+  /** Calendar heatmap: one cell per day, tinted by the score entity's value. */
+  private _renderScoreCalendar(values: number[], days: number): TemplateResult {
+    const locale = lang(this.hass) === 'de' ? 'de-DE' : 'en-US';
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - (days - 1));
+    const offset = (start.getDay() + 6) % 7; // Monday-first
+    const monday = new Date(2024, 0, 1); // a known Monday
+    const heads = Array.from({ length: 7 }, (_, i) =>
+      new Date(monday.getTime() + i * 86400000).toLocaleDateString(locale, {
+        weekday: 'narrow',
+      })
+    );
+    return html`<div class="cal">
+      ${heads.map((h) => html`<div class="cal-head">${h}</div>`)}
+      ${Array.from({ length: offset }, () => html`<div></div>`)}
+      ${values.map((v, i) => {
+        const d = new Date(start.getTime() + i * 86400000);
+        if (!Number.isFinite(v)) {
+          return html`<div class="cal-cell empty">${d.getDate()}</div>`;
+        }
+        const color = this._scoreColor(v, 100);
+        return html`<div
+          class="cal-cell"
+          title=${Math.round(v)}
+          style="background: color-mix(in srgb, ${color} 30%, transparent); color: ${color}"
+        >
+          ${d.getDate()}
+        </div>`;
+      })}
+    </div>`;
+  }
+
   /** Formats a value the same way the metric's big value is formatted. */
   private _fmtMetricValue(c: MetricCtx, x: number): string {
     if (c.m.duration ?? c.preset.duration) {
@@ -504,35 +607,87 @@ export class HealthCard extends LitElement {
     </div>`;
   }
 
+  private static readonly POPUP_PERIODS = [
+    { key: 'week', days: 7 },
+    { key: 'month', days: 30 },
+    { key: 'quarter', days: 90 },
+    { key: 'year', days: 365 },
+  ];
+
   private _renderPopup(): TemplateResult | typeof nothing {
     if (this._popup === null || !this._config) return nothing;
     const m = this._config.metrics[this._popup];
     if (!m) return nothing;
-    const c = this._ctx(m);
+    const c = this._ctx(m, this._popupDays ?? undefined);
     if (!c.primaryState) return nothing;
     const primaryState = c.primaryState;
 
     const finite = c.data[0].buckets.filter(Number.isFinite);
-    const stats = finite.length
-      ? {
-          min: Math.min(...finite),
-          avg: finite.reduce((a, b) => a + b, 0) / finite.length,
-          max: Math.max(...finite),
+    const delta = trendDelta(c.data[0].filled);
+    const goal = this._resolveGoal(m.goal);
+    const v = c.valueOverride ?? this._numeric(primaryState, m.attribute);
+    const stats: Array<{ label: string; value: string }> = [];
+    if (finite.length) {
+      stats.push(
+        {
+          label: t(this.hass, 'stat_min'),
+          value: this._fmtMetricValue(c, Math.min(...finite)),
+        },
+        {
+          label: t(this.hass, 'stat_avg'),
+          value: this._fmtMetricValue(
+            c,
+            finite.reduce((a, b) => a + b, 0) / finite.length
+          ),
+        },
+        {
+          label: t(this.hass, 'stat_max'),
+          value: this._fmtMetricValue(c, Math.max(...finite)),
         }
-      : undefined;
+      );
+      if (Number.isFinite(delta) && delta !== 0) {
+        stats.push({
+          label: t(this.hass, 'stat_trend'),
+          value: `${delta > 0 ? '+' : ''}${this._fmtMetricValue(c, delta)}`,
+        });
+      }
+    }
+    if (Number.isFinite(goal) && Number.isFinite(v)) {
+      const left = c.goalType === 'atmost' ? v - goal : goal - v;
+      stats.push({
+        label: t(this.hass, 'goal_left'),
+        value: left > 0 ? this._fmtMetricValue(c, left) : '✓',
+      });
+    }
 
-    // Popup chart: progress metrics get their bars plus the daily history;
-    // metrics without a tile chart (score) fall back to a line chart.
+    // History chart: long ranges scroll horizontally, no dots, taller canvas.
+    const n = c.days;
+    const wide = n > 16;
     const historyGraph = c.graph === 'bar' || c.graph === 'progress' ? 'bar' : 'line';
-    const chart = html`
-      ${c.graph === 'progress'
-        ? this._renderChart(m, 'progress', c.data, c.unit, c.precision)
-        : nothing}
-      <div class="popup-chart">
-        ${this._renderChart(m, historyGraph, c.data, c.unit, c.precision)}
-        ${this._dayLabels(c.days)}
-      </div>
-    `;
+    const opts = wide ? { w: n * 10, h: 90, dots: false } : {};
+    const historyTpl =
+      historyGraph === 'bar'
+        ? barChart(
+            c.data[0].buckets,
+            c.data[0].colorResolved,
+            Number.isFinite(goal) ? goal : undefined,
+            opts
+          )
+        : lineChart(
+            c.data.map((s) => ({ values: s.filled, color: s.colorResolved })),
+            opts
+          );
+    const activeDays = this._popupDays ?? c.days;
+
+    // Sleep score calendar (capped at ~3 months so it stays readable)
+    const calDays = Math.min(c.days, 91);
+    const calendar =
+      c.type === 'sleep' && m.score_entity && this.hass.states[m.score_entity]
+        ? this._renderScoreCalendar(
+            this._bucketsFor(m.score_entity, calDays, 'mean', (this._popupDays ?? 0) > 10),
+            calDays
+          )
+        : nothing;
 
     return html`
       <div class="backdrop s-${this._cardStyle()}" @click=${() => (this._popup = null)}>
@@ -546,6 +701,7 @@ export class HealthCard extends LitElement {
           <div class="dialog-head">
             <div class="iconchip"><ha-icon .icon=${c.icon}></ha-icon></div>
             <div class="dialog-title">${c.name}</div>
+            ${this._renderScoreBadge(m)}
             <button
               class="close"
               aria-label=${t(this.hass, 'close')}
@@ -577,17 +733,39 @@ export class HealthCard extends LitElement {
             c.goalType,
             c.valueOverride
           )}
-          ${chart}
-          ${stats
+          <div class="periods">
+            ${HealthCard.POPUP_PERIODS.map(
+              (p) => html`<button
+                class="period ${activeDays === p.days ? 'active' : ''}"
+                @click=${() => {
+                  this._popupDays = p.days;
+                }}
+              >
+                ${t(this.hass, `period_${p.key}`)}
+              </button>`
+            )}
+          </div>
+          ${c.graph === 'progress'
+            ? this._renderChart(m, 'progress', c.data, c.unit, c.precision)
+            : nothing}
+          <div class="popup-chart">
+            ${wide
+              ? html`<div class="chart-scroll">
+                  <div style="width:${n * 12}px">${historyTpl}</div>
+                </div>`
+              : html`${historyTpl}${this._dayLabels(n)}`}
+          </div>
+          ${stats.length
             ? html`<div class="stats">
-                ${(['min', 'avg', 'max'] as const).map(
-                  (k) => html`<div class="stat">
-                    <div class="stat-label">${t(this.hass, `stat_${k}`)}</div>
-                    <div class="stat-value">${this._fmtMetricValue(c, stats[k])}</div>
+                ${stats.map(
+                  (s) => html`<div class="stat">
+                    <div class="stat-label">${s.label}</div>
+                    <div class="stat-value">${s.value}</div>
                   </div>`
                 )}
               </div>`
             : nothing}
+          ${calendar}
           ${c.multi ? this._renderSeriesChips(c.data, c.precision, c.trendMode) : nothing}
           ${c.type === 'sleep' && m.phases ? this._renderSleepPhases(m) : nothing}
           ${this._renderSecondary(m)}
@@ -796,9 +974,13 @@ export class HealthCard extends LitElement {
       : delta > 0
         ? 'mdi:arrow-top-right'
         : 'mdi:arrow-bottom-right';
+    const type = (m.type && PRESETS[m.type] ? m.type : 'custom') as MetricType;
+    const isDuration = m.duration ?? PRESETS[type].duration;
     const text = stable
       ? t(this.hass, 'stable')
-      : `${fmtNumber(this.hass, Math.abs(delta), precision)}${unit ? ` ${unit}` : ''}`;
+      : isDuration
+        ? fmtDuration(Math.abs(delta), unit || undefined)
+        : `${fmtNumber(this.hass, Math.abs(delta), precision)}${unit ? ` ${unit}` : ''}`;
     return html`<div class="status ${dirClass}">
       <span class="dotarrow"><ha-icon .icon=${arrow}></ha-icon></span>
       <span>${text}</span>
@@ -1123,6 +1305,11 @@ export class HealthCard extends LitElement {
     }
     .cardroot.flat .metrics {
       gap: 4px;
+    }
+    /* tiles off: no style may draw tile borders or shadows (e.g. mirror) */
+    .cardroot.flat .metric {
+      border: none;
+      box-shadow: none;
     }
     .metrics.carousel {
       display: flex;
@@ -1493,7 +1680,7 @@ export class HealthCard extends LitElement {
     }
     .stats {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
       gap: 8px;
     }
     .stat {
@@ -1529,6 +1716,80 @@ export class HealthCard extends LitElement {
     }
     .openha ha-icon {
       --mdc-icon-size: 16px;
+    }
+    .scorebadge {
+      min-width: 26px;
+      height: 20px;
+      padding: 0 7px;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+      box-sizing: border-box;
+    }
+    .periods {
+      display: flex;
+      gap: 6px;
+    }
+    .period {
+      border: none;
+      cursor: pointer;
+      padding: 5px 14px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--secondary-text-color);
+      background: color-mix(in srgb, var(--primary-text-color) 6%, transparent);
+    }
+    .period.active {
+      background: var(--hc-accent);
+      color: var(--hc-card-bg);
+    }
+    .s-mirror .period {
+      background: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.75);
+    }
+    .s-mirror .period.active {
+      background: #fff;
+      color: #000;
+    }
+    .chart-scroll {
+      overflow-x: auto;
+      scrollbar-width: thin;
+    }
+    .chart-scroll > div {
+      min-width: 100%;
+    }
+    .cal {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    .cal-head {
+      font-size: 10px;
+      text-align: center;
+      color: var(--secondary-text-color);
+    }
+    .cal-cell {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .cal-cell.empty {
+      background: color-mix(in srgb, var(--primary-text-color) 5%, transparent);
+      color: var(--secondary-text-color);
+      font-weight: 400;
+    }
+    .s-mirror .cal-cell.empty {
+      background: rgba(255, 255, 255, 0.08);
     }
   `;
 }

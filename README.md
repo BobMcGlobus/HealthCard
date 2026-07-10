@@ -18,7 +18,9 @@ Trend-Pfeilen und Zielen. Vollständig Theme-kompatibel (Light & Dark).
 - 🪥 **Zähneputzen-Preset** (z. B. Oral-B iO)
 - 🎠 **Carousel-Layout**: alle Kacheln horizontal scrollbar auf minimalem Platz
 - 🫥 **Einbettbar**: Kartenhintergrund abschaltbar (rendert dann ganz ohne `ha-card` — keine Theme-Border) + randlose Darstellung für Container-Karten
-- 🔍 **Detail-Popup**: Klick auf eine Kachel öffnet eine eigene Detailansicht mit großem Verlauf, Wochentagen, Min/Ø/Max und allen Serien/Phasen
+- 🔍 **Detail-Popup**: Klick auf eine Kachel öffnet eine eigene Detailansicht mit großem Verlauf, Wochentagen, Min/Ø/Max/Trend, „Bis Ziel" und allen Serien/Phasen
+- 📅 **Zeiträume im Popup**: Woche / Monat / 3 Monate / Jahr — lange Zeiträume kommen aus den Langzeit-Statistiken (überleben die Recorder-Bereinigung) und der Graph wird horizontal scrollbar
+- 🚦 **Score-Badge**: `score_entity` (z. B. Withings Schlafwert) zeigt eine Ampel-Plakette auf der Kachel; beim Schlaf gibt's im Popup eine Kalender-Heatmap mit nach Score eingefärbten Tagen
 - 🖱️ **Klick-Aktion pro Kachel**: Popup (Detailansicht), More-Info (HA-Dialog), Link oder nichts
 - 🎨 **6 Kartenstile** über `card_style`: HA-Standard, Withings (Default), Liquid Glass, Material You, Bubble, Magic Mirror — Kacheln **und** Popup passen sich an
 - 💯 **Score-Optik je Stil und Wert**: Withings-Punktering (Anteil farbiger Punkte = Score), Fortschrittsring, Material-Scallop; Farbe wechselt mit dem Score (grün/orange/rot)
@@ -150,6 +152,7 @@ metrics: [...]
 | `link`      | string | Dashboard-Pfad oder URL für `tap_action: link`                                |
 | `max`       | number | Nur `score`: Maximalwert (Default 100)                                        |
 | `phases`    | object | Nur `sleep`: `deep`/`light`/`rem`/`awake` Entitäten für die Phasen-Aufschlüsselung |
+| `score_entity` | string | Score-Sensor (0–100): Ampel-Badge auf der Kachel; bei `sleep` zusätzlich Kalender-Heatmap im Popup |
 | `precision` | number | Nachkommastellen                                                              |
 | `aggregate` | string | Tagesaggregation: `mean`, `min`, `max`, `sum`, `last`                         |
 | `trend`     | string | `up_good`, `down_good`, `neutral`, `none`                                     |

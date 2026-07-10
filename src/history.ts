@@ -82,6 +82,84 @@ export function bucketDaily(
   });
 }
 
+export interface StatsRow {
+  /** bucket start, epoch millis */
+  start: number;
+  mean: number | null;
+  min: number | null;
+  max: number | null;
+  state: number | null;
+  sum: number | null;
+}
+
+export type StatsMap = Record<string, StatsRow[]>;
+
+/**
+ * Fetches daily long-term statistics — unlike recorder history these survive
+ * the purge window, so month/year ranges keep working.
+ */
+export async function fetchStats(
+  hass: HomeAssistant,
+  entityIds: string[],
+  days: number
+): Promise<StatsMap> {
+  if (!entityIds.length) return {};
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - (days - 1));
+
+  const resp = await hass.callWS<Record<string, Record<string, unknown>[]>>({
+    type: 'recorder/statistics_during_period',
+    start_time: start.toISOString(),
+    end_time: new Date().toISOString(),
+    statistic_ids: entityIds,
+    period: 'day',
+    types: ['mean', 'min', 'max', 'state', 'sum'],
+  });
+
+  const num = (x: unknown): number | null =>
+    typeof x === 'number' && Number.isFinite(x) ? x : null;
+  const out: StatsMap = {};
+  for (const id of entityIds) {
+    out[id] = (resp?.[id] ?? []).map((r) => ({
+      start:
+        typeof r.start === 'number' ? r.start : new Date(r.start as string).getTime(),
+      mean: num(r.mean),
+      min: num(r.min),
+      max: num(r.max),
+      state: num(r.state),
+      sum: num(r.sum),
+    }));
+  }
+  return out;
+}
+
+/** Maps daily statistics rows onto the same day buckets bucketDaily produces. */
+export function bucketsFromStats(
+  rows: StatsRow[],
+  days: number,
+  aggregate: Aggregate
+): number[] {
+  const dayStart = new Date();
+  dayStart.setHours(0, 0, 0, 0);
+  const windowStart = dayStart.getTime() - (days - 1) * 86400000;
+  const out: number[] = new Array(days).fill(NaN);
+  for (const r of rows) {
+    const idx = Math.floor((r.start - windowStart) / 86400000);
+    if (idx < 0 || idx >= days) continue;
+    const v =
+      aggregate === 'min'
+        ? r.min
+        : aggregate === 'max' || aggregate === 'sum'
+          ? (r.max ?? r.mean)
+          : aggregate === 'last'
+            ? (r.state ?? r.mean)
+            : r.mean;
+    if (v !== null) out[idx] = v;
+  }
+  return out;
+}
+
 /** Forward- and back-fills NaN gaps so line charts stay continuous. */
 export function fillGaps(values: number[]): number[] {
   const out = [...values];

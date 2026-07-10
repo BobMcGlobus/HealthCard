@@ -102,6 +102,11 @@ export interface MetricConfig {
   max?: number;
   /** Sleep metrics: phase entities for the stage breakdown */
   phases?: SleepPhases;
+  /**
+   * Optional score entity (0-100, e.g. Withings sleep score): shown as a
+   * traffic-light badge on the tile; sleep popups add a calendar heatmap.
+   */
+  score_entity?: string;
 }
 
 export interface HealthCardConfig {

@@ -34,6 +34,12 @@ const STRINGS: Record<string, Record<string, string>> = {
     stat_min: 'Min',
     stat_avg: 'Avg',
     stat_max: 'Max',
+    stat_trend: 'Trend',
+    goal_left: 'To goal',
+    period_week: 'W',
+    period_month: 'M',
+    period_quarter: '3M',
+    period_year: 'Y',
   },
   de: {
     goal: 'Ziel',
@@ -68,6 +74,12 @@ const STRINGS: Record<string, Record<string, string>> = {
     stat_min: 'Min',
     stat_avg: 'Ø',
     stat_max: 'Max',
+    stat_trend: 'Trend',
+    goal_left: 'Bis Ziel',
+    period_week: 'W',
+    period_month: 'M',
+    period_quarter: '3M',
+    period_year: 'J',
   },
 };
 

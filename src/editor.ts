@@ -53,6 +53,7 @@ const LABELS: Record<string, Record<string, string>> = {
     phase_light: 'Light sleep entity',
     phase_rem: 'REM sleep entity',
     phase_awake: 'Awake entity',
+    score_entity: 'Score sensor (traffic-light badge)',
     type: 'Type',
     entity: 'Entity',
     entity2: 'Second entity (e.g. diastolic)',
@@ -122,6 +123,7 @@ const LABELS: Record<string, Record<string, string>> = {
     phase_light: 'Leichtschlaf-Entität',
     phase_rem: 'REM-Schlaf-Entität',
     phase_awake: 'Wachphasen-Entität',
+    score_entity: 'Score-Sensor (Ampel-Badge)',
     type: 'Typ',
     entity: 'Entität',
     entity2: 'Zweite Entität (z. B. diastolisch)',
@@ -288,14 +290,27 @@ export class HealthCardEditor extends LitElement {
         { name: 'label', selector: { text: {} } },
       ]),
       section('sec_goal', 'mdi:flag-checkered', [
+        // rows pair same-height components: numbers, then pickers, then selects
         {
           type: 'grid',
           name: '',
           schema: [
             { name: 'goal', selector: { number: { mode: 'box', step: 'any' } } },
-            { name: 'goal_entity', selector: { entity: {} } },
             { name: 'start', selector: { number: { mode: 'box', step: 'any' } } },
+          ],
+        },
+        {
+          type: 'grid',
+          name: '',
+          schema: [
+            { name: 'goal_entity', selector: { entity: {} } },
             { name: 'start_entity', selector: { entity: {} } },
+          ],
+        },
+        {
+          type: 'grid',
+          name: '',
+          schema: [
             {
               name: 'goal_type',
               selector: {
@@ -349,6 +364,7 @@ export class HealthCardEditor extends LitElement {
           ],
         },
         { name: 'secondary', selector: { entity: { multiple: true } } },
+        { name: 'score_entity', selector: { entity: {} } },
       ]),
       ...(type === 'sleep'
         ? [

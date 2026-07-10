@@ -112,6 +112,7 @@ const states = {
   'sensor.leichter_schlaf': entity('sensor.leichter_schlaf', 210, { unit_of_measurement: 'min', friendly_name: 'Leichter Schlaf' }),
   'sensor.rem_schlaf': entity('sensor.rem_schlaf', 105, { unit_of_measurement: 'min', friendly_name: 'REM-Schlaf' }),
   'sensor.wachphasen': entity('sensor.wachphasen', 45, { unit_of_measurement: 'min', friendly_name: 'Wach' }),
+  'sensor.schlafwert': entity('sensor.schlafwert', 82, { friendly_name: 'Schlafwert' }),
   'sensor.gesundheitsscore': entity('sensor.gesundheitsscore', 96, { friendly_name: 'Gesundheitsscore' }),
   'sensor.zahnputzzeit': entity('sensor.zahnputzzeit', 135, { unit_of_measurement: 's', friendly_name: 'Zahnputzzeit' }),
 };
@@ -132,6 +133,7 @@ const profiles = {
   'sensor.tiefschlaf': [90, 0.5, 15],
   'sensor.leichter_schlaf': [200, 1, 25],
   'sensor.rem_schlaf': [100, 0.5, 15],
+  'sensor.schlafwert': [55, 0.9, 40],
   'sensor.gesundheitsscore': [92, 0.6, 2],
   'sensor.zahnputzzeit': [115, 2, 50],
 };
@@ -161,12 +163,30 @@ const hass = {
   language: 'de',
   locale: { language: 'de' },
   callWS: async (msg) => {
-    if (msg.type !== 'history/history_during_period') return {};
-    const start = new Date(msg.start_time).getTime();
-    const end = new Date(msg.end_time).getTime();
-    const out = {};
-    for (const id of msg.entity_ids) out[id] = fakeHistory(id, start, end);
-    return out;
+    if (msg.type === 'history/history_during_period') {
+      const start = new Date(msg.start_time).getTime();
+      const end = new Date(msg.end_time).getTime();
+      const out = {};
+      for (const id of msg.entity_ids) out[id] = fakeHistory(id, start, end);
+      return out;
+    }
+    if (msg.type === 'recorder/statistics_during_period') {
+      const start = new Date(msg.start_time).getTime();
+      const end = new Date(msg.end_time).getTime();
+      const out = {};
+      for (const id of msg.statistic_ids) {
+        out[id] = fakeHistory(id, start, end).map((p) => ({
+          start: p.lu * 1000,
+          mean: +p.s,
+          min: +p.s * 0.97,
+          max: +p.s * 1.03,
+          state: +p.s,
+          sum: null,
+        }));
+      }
+      return out;
+    }
+    return {};
   },
 };
 
@@ -213,6 +233,7 @@ const config = {
     {
       type: 'sleep',
       entity: 'sensor.schlaf',
+      score_entity: 'sensor.schlafwert',
       phases: {
         deep: 'sensor.tiefschlaf',
         light: 'sensor.leichter_schlaf',
