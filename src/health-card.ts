@@ -33,7 +33,7 @@ import { barChart, lineChart, scoreGraphic } from './charts';
 import type { AxisMark, ChartOpts } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.7.0';
+const CARD_VERSION = '0.8.0';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
@@ -784,7 +784,22 @@ export class HealthCard extends LitElement {
                       style="--hc-glow:${glowColor};opacity:${glow}"
                     ></div>`
                   : nothing}
-                <img class="bodyimg" src=${this._bodyImage(m, shape)!} alt="" />
+                ${m.image_remove_black
+                  ? html`<svg class="unblack-defs" aria-hidden="true">
+                      <filter id="hc-unblack">
+                        <feColorMatrix
+                          type="matrix"
+                          values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  1.2 1.8 0.7 0 -0.18"
+                        />
+                      </filter>
+                    </svg>`
+                  : nothing}
+                <img
+                  class="bodyimg"
+                  src=${this._bodyImage(m, shape)!}
+                  style=${m.image_remove_black ? 'filter: url(#hc-unblack)' : ''}
+                  alt=""
+                />
                 ${fever > 0
                   ? html`<div class="body-fever" style="opacity:${fever}"></div>`
                   : nothing}
@@ -825,9 +840,15 @@ export class HealthCard extends LitElement {
   }
 
   private _renderAnchor(a: BodyAnchor, i: number): TemplateResult | typeof nothing {
-    const pos = HealthCard.ANCHOR_POS[a.position ?? 'chest'];
+    const base = HealthCard.ANCHOR_POS[a.position ?? 'chest'];
     const st = this.hass.states[a.entity];
-    if (!pos || !st) return nothing;
+    if (!base || !st) return nothing;
+    // free x/y placement (percent) overrides the named position
+    const pos = {
+      x: a.x ?? base.x,
+      y: a.y ?? base.y,
+      side: a.x !== undefined && !a.position ? (a.x >= 50 ? 'right' : 'left') : base.side,
+    };
     const color =
       resolveColor(a.color) ?? resolveColor(SERIES_PALETTE[i % SERIES_PALETTE.length])!;
     const v = this._numeric(st);
@@ -2165,6 +2186,11 @@ export class HealthCard extends LitElement {
       height: auto;
       display: block;
       position: relative;
+    }
+    .unblack-defs {
+      position: absolute;
+      width: 0;
+      height: 0;
     }
     .body-glow {
       position: absolute;

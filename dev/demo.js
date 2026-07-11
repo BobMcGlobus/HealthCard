@@ -263,6 +263,33 @@ const config = {
       ],
     },
     {
+      type: 'body',
+      name: 'Körper (Bilder)',
+      entity: 'sensor.gewicht',
+      gender: 'male',
+      goal: 'sensor.zielgewicht',
+      start: 'sensor.startgewicht',
+      score_entity: 'sensor.gesundheitsscore',
+      image_remove_black: true,
+      images: {
+        slim: '/Bilder import/Liqid Glass Demo/male_underweight.png',
+        regular: '/Bilder import/Liqid Glass Demo/male_normal.png',
+        full: '/Bilder import/Liqid Glass Demo/male_overweight.png',
+      },
+      anchors: [
+        { entity: 'sensor.puls', name: 'Puls', x: 55, y: 30 },
+        {
+          entity: 'sensor.blutdruck_sys',
+          entity2: 'sensor.blutdruck_dia',
+          name: 'Blutdruck',
+          x: 72,
+          y: 38,
+        },
+        { entity: 'sensor.fettanteil', name: 'Fett', x: 50, y: 48 },
+        { entity: 'sensor.muskelmasse', name: 'Muskeln', x: 22, y: 16 },
+      ],
+    },
+    {
       type: 'weight',
       entity: 'sensor.gewicht',
       goal: 'sensor.zielgewicht',

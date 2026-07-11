@@ -68,6 +68,9 @@ export interface BodyAnchor {
   name?: string;
   color?: string;
   position?: BodyAnchorPosition;
+  /** free placement (percent of the figure area), overrides position */
+  x?: number;
+  y?: number;
 }
 
 export interface SeriesConfig {
@@ -150,6 +153,11 @@ export interface MetricConfig {
    * overlay and anchors keep working on top of the image.
    */
   images?: { slim?: string; regular?: string; full?: string };
+  /**
+   * Body images on black backgrounds (e.g. AI renderings): turns luminance
+   * into alpha so black becomes transparent — works on light and dark themes.
+   */
+  image_remove_black?: boolean;
 }
 
 export interface HealthCardConfig {

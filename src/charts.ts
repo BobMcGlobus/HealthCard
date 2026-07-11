@@ -279,31 +279,29 @@ export function scoreArcGlass(
       <filter id="hc-glow" x="-40%" y="-40%" width="180%" height="180%">
         <feGaussianBlur stdDeviation="6" />
       </filter>
+      <filter id="hc-blur-heavy" x="-90%" y="-90%" width="280%" height="280%">
+        <feGaussianBlur stdDeviation="15" />
+      </filter>
     </defs>
     ${full
       ? svg`<circle cx="100" cy="100" r="93" fill="none" stroke=${color}
           stroke-width="2.5" opacity="0.4" filter="url(#hc-glow)" class="glowpulse"/>`
       : nothing}
-    ${(() => {
-      // sub-goals tint the soft glow behind the tube — subtle, not a pie chart
-      if (!segments?.length) {
-        return svg`<circle cx="100" cy="100" r=${R} fill="none" stroke=${color}
-          stroke-width=${w + 7} stroke-linecap="round" stroke-dasharray=${dash}
-          transform="rotate(-90 100 100)" filter="url(#hc-glow)" opacity=${glow}
-          class=${full ? 'glowpulse' : ''}/>`;
-      }
-      let offset = 0;
-      return segments.map((seg) => {
-        const len = C * ratio * seg.share;
-        const el = svg`<circle cx="100" cy="100" r=${R} fill="none"
-          stroke=${seg.color} stroke-width=${w + 7} stroke-linecap="butt"
-          stroke-dasharray="${Math.max(len, 0.1)} ${C}" stroke-dashoffset=${-offset}
-          transform="rotate(-90 100 100)" filter="url(#hc-glow)" opacity=${glow}
-          class=${full ? 'glowpulse' : ''}/>`;
-        offset += len;
-        return el;
-      });
-    })()}
+    <circle cx="100" cy="100" r=${R} fill="none" stroke=${color}
+      stroke-width=${w + 7} stroke-linecap="round" stroke-dasharray=${dash}
+      transform="rotate(-90 100 100)" filter="url(#hc-glow)" opacity=${glow}
+      class=${full ? 'glowpulse' : ''}/>
+    ${
+      // sub-goals melt into a heavily blurred color wash behind the number
+      segments?.length
+        ? segments.map((seg, i) => {
+            const a = (i / segments!.length) * 2 * Math.PI - Math.PI / 2;
+            return svg`<circle cx=${100 + Math.cos(a) * 24} cy=${100 + Math.sin(a) * 24}
+              r=${16 + seg.share * 26} fill=${seg.color}
+              filter="url(#hc-blur-heavy)" opacity="0.5"/>`;
+          })
+        : nothing
+    }
     <circle cx="100" cy="100" r=${R} fill="none" stroke-width=${w}
       stroke="color-mix(in srgb, ${color} 13%, transparent)"/>
     <circle cx="100" cy="100" r=${R + w / 2 - 0.6} fill="none" stroke-width="1"

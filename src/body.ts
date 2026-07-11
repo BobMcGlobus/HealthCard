@@ -104,17 +104,18 @@ export function bodyFigure(o: BodyOpts): TemplateResult {
     // trapezius + marked shoulder
     [100 + sh * 0.55, 66],
     [100 + sh + 2, 75],
-    // flexed arm: biceps bump → elbow → raised forearm → fist
-    [100 + sh + 12, 64],
-    [100 + p.arm + 12, 68],
-    [100 + p.arm + 20, 88], // elbow, clearly outside
-    [100 + p.arm + 22, 62],
-    [100 + p.arm + 15, 44], // fist at ear height
-    [100 + p.arm + 6, 45],
-    [100 + p.arm + 2, 62],
-    [100 + p.arm - 4, 80], // elbow crease
-    [100 + p.waist + 8, 102], // underside of upper arm → armpit
-    [100 + p.waist + 1, 128],
+    // flexed arm: upper arm out, forearm raised diagonally, clear crease
+    [100 + sh + 13, 76], // biceps top edge, near horizontal
+    [100 + p.arm + 12, 82],
+    [100 + p.arm + 22, 92], // elbow
+    [100 + p.arm + 26, 66], // forearm outer edge
+    [100 + p.arm + 21, 48], // fist outer
+    [100 + p.arm + 13, 46], // fist inner
+    [100 + p.arm + 7, 62], // forearm inner edge
+    [100 + p.arm + 2, 80], // elbow crease resting on the biceps
+    [100 + sh + 8, 96], // underside of the upper arm
+    [100 + p.waist + 6, 108], // armpit
+    [100 + p.waist + 1, 130],
     [100 + p.waist, 152], // free waist on the flexing side
     [100 + p.belly + 2, 180],
     [100 + p.hip, 200],
