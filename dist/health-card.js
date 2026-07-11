@@ -75,7 +75,7 @@ const { is: ut, defineProperty: mt, getOwnPropertyDescriptor: gt, getOwnProperty
   return t;
 } }, Se = (r, e) => !ut(r, e), Te = { attribute: !0, type: String, converter: ce, reflect: !1, useDefault: !1, hasChanged: Se };
 Symbol.metadata ?? (Symbol.metadata = Symbol("metadata")), T.litPropertyMetadata ?? (T.litPropertyMetadata = /* @__PURE__ */ new WeakMap());
-let W = class extends HTMLElement {
+let V = class extends HTMLElement {
   static addInitializer(e) {
     this._$Ei(), (this.l ?? (this.l = [])).push(e);
   }
@@ -278,14 +278,14 @@ let W = class extends HTMLElement {
   firstUpdated(e) {
   }
 };
-W.elementStyles = [], W.shadowRootOptions = { mode: "open" }, W[J("elementProperties")] = /* @__PURE__ */ new Map(), W[J("finalized")] = /* @__PURE__ */ new Map(), ge == null || ge({ ReactiveElement: W }), (T.reactiveElementVersions ?? (T.reactiveElementVersions = [])).push("2.1.2");
+V.elementStyles = [], V.shadowRootOptions = { mode: "open" }, V[J("elementProperties")] = /* @__PURE__ */ new Map(), V[J("finalized")] = /* @__PURE__ */ new Map(), ge == null || ge({ ReactiveElement: V }), (T.reactiveElementVersions ?? (T.reactiveElementVersions = [])).push("2.1.2");
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
 const Q = globalThis, Re = (r) => r, le = Q.trustedTypes, ze = le ? le.createPolicy("lit-html", { createHTML: (r) => r }) : void 0, tt = "$lit$", P = `lit$${Math.random().toFixed(9).slice(2)}$`, rt = "?" + P, vt = `<${rt}>`, j = document, ee = () => j.createComment(""), te = (r) => r === null || typeof r != "object" && typeof r != "function", Ae = Array.isArray, xt = (r) => Ae(r) || typeof (r == null ? void 0 : r[Symbol.iterator]) == "function", fe = `[ 	
-\f\r]`, Y = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Oe = /-->/g, Le = />/g, O = RegExp(`>|${fe}(?:([^\\s"'>=/]+)(${fe}*=${fe}*(?:[^ 	
+\f\r]`, Z = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Oe = /-->/g, Le = />/g, O = RegExp(`>|${fe}(?:([^\\s"'>=/]+)(${fe}*=${fe}*(?:[^ 	
 \f\r"'\`<>=]|("|')|))|$)`, "g"), He = /'/g, Be = /"/g, it = /^(?:script|style|textarea|title)$/i, st = (r) => (e, ...t) => ({ _$litType$: r, strings: e, values: t }), u = st(1), w = st(2), K = Symbol.for("lit-noChange"), p = Symbol.for("lit-nothing"), Ue = /* @__PURE__ */ new WeakMap(), L = j.createTreeWalker(j, 129);
 function ot(r, e) {
   if (!Ae(r) || !r.hasOwnProperty("raw")) throw Error("invalid template strings array");
@@ -293,13 +293,13 @@ function ot(r, e) {
 }
 const $t = (r, e) => {
   const t = r.length - 1, i = [];
-  let s, a = e === 2 ? "<svg>" : e === 3 ? "<math>" : "", o = Y;
+  let s, a = e === 2 ? "<svg>" : e === 3 ? "<math>" : "", o = Z;
   for (let n = 0; n < t; n++) {
     const c = r[n];
     let d, l, h = -1, g = 0;
-    for (; g < c.length && (o.lastIndex = g, l = o.exec(c), l !== null); ) g = o.lastIndex, o === Y ? l[1] === "!--" ? o = Oe : l[1] !== void 0 ? o = Le : l[2] !== void 0 ? (it.test(l[2]) && (s = RegExp("</" + l[2], "g")), o = O) : l[3] !== void 0 && (o = O) : o === O ? l[0] === ">" ? (o = s ?? Y, h = -1) : l[1] === void 0 ? h = -2 : (h = o.lastIndex - l[2].length, d = l[1], o = l[3] === void 0 ? O : l[3] === '"' ? Be : He) : o === Be || o === He ? o = O : o === Oe || o === Le ? o = Y : (o = O, s = void 0);
+    for (; g < c.length && (o.lastIndex = g, l = o.exec(c), l !== null); ) g = o.lastIndex, o === Z ? l[1] === "!--" ? o = Oe : l[1] !== void 0 ? o = Le : l[2] !== void 0 ? (it.test(l[2]) && (s = RegExp("</" + l[2], "g")), o = O) : l[3] !== void 0 && (o = O) : o === O ? l[0] === ">" ? (o = s ?? Z, h = -1) : l[1] === void 0 ? h = -2 : (h = o.lastIndex - l[2].length, d = l[1], o = l[3] === void 0 ? O : l[3] === '"' ? Be : He) : o === Be || o === He ? o = O : o === Oe || o === Le ? o = Z : (o = O, s = void 0);
     const f = o === O && r[n + 1].startsWith("/>") ? " " : "";
-    a += o === Y ? c + vt : h >= 0 ? (i.push(d), c.slice(0, h) + tt + c.slice(h) + P + f) : c + P + (h === -2 ? n : f);
+    a += o === Z ? c + vt : h >= 0 ? (i.push(d), c.slice(0, h) + tt + c.slice(h) + P + f) : c + P + (h === -2 ? n : f);
   }
   return [ot(r, a + (r[t] || "<?>") + (e === 2 ? "</svg>" : e === 3 ? "</math>" : "")), i];
 };
@@ -521,7 +521,7 @@ const Et = (r, e, t) => {
  * SPDX-License-Identifier: BSD-3-Clause
  */
 const B = globalThis;
-class V extends W {
+class W extends V {
   constructor() {
     super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
   }
@@ -547,9 +547,9 @@ class V extends W {
   }
 }
 var Je;
-V._$litElement$ = !0, V.finalized = !0, (Je = B.litElementHydrateSupport) == null || Je.call(B, { LitElement: V });
+W._$litElement$ = !0, W.finalized = !0, (Je = B.litElementHydrateSupport) == null || Je.call(B, { LitElement: W });
 const ye = B.litElementPolyfillSupport;
-ye == null || ye({ LitElement: V });
+ye == null || ye({ LitElement: W });
 (B.litElementVersions ?? (B.litElementVersions = [])).push("4.2.2");
 /**
  * @license
@@ -857,7 +857,12 @@ function Pt(r) {
     [100 + s + 13, 50]
     // raised fist
   ].map(o).map((f, _) => `${_ ? "L" : "M"} ${f[0].toFixed(1)} ${f[1].toFixed(1)}`).join(" "), h = 100 + (s + 7);
-  return u`<svg class="bodyfig" viewBox="0 0 200 330" aria-hidden="true">
+  return u`<svg
+    class="bodyfig"
+    viewBox="0 0 200 330"
+    preserveAspectRatio="xMidYMin meet"
+    aria-hidden="true"
+  >
     <defs>
       <linearGradient id="hc-body-fill" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" style="stop-color: var(--hc-body-top)" />
@@ -892,7 +897,7 @@ function Pt(r) {
           stroke-width="1" transform="rotate(${14} ${h} 88)"/>` : p}
   </svg>`;
 }
-const We = {
+const Ve = {
   en: {
     goal: "Goal",
     rising: "rising",
@@ -1007,7 +1012,7 @@ function U(r) {
   return (((t = r == null ? void 0 : r.locale) == null ? void 0 : t.language) ?? (r == null ? void 0 : r.language) ?? "en").startsWith("de") ? "de" : "en";
 }
 function x(r, e) {
-  return We[U(r)][e] ?? We.en[e] ?? e;
+  return Ve[U(r)][e] ?? Ve.en[e] ?? e;
 }
 function S(r, e, t) {
   if (!Number.isFinite(e)) return "–";
@@ -1100,7 +1105,7 @@ async function zt(r, e, t, i = "day") {
     }));
   return n;
 }
-function Ve(r, e) {
+function We(r, e) {
   return e === "min" ? r.min : e === "max" || e === "sum" ? r.max ?? r.mean : e === "last" ? r.state ?? r.mean : r.mean;
 }
 function Ke(r, e, t, i = "day") {
@@ -1110,7 +1115,7 @@ function Ke(r, e, t, i = "day") {
     for (const d of r) {
       const l = new Date(d.start), h = l.getFullYear() * 12 + l.getMonth() - (c - (e - 1));
       if (h < 0 || h >= e) continue;
-      const g = Ve(d, t);
+      const g = We(d, t);
       g !== null && (s[h] = g);
     }
     return s;
@@ -1121,7 +1126,7 @@ function Ke(r, e, t, i = "day") {
   for (const n of r) {
     const c = Math.floor((n.start - o) / 864e5);
     if (c < 0 || c >= e) continue;
-    const d = Ve(n, t);
+    const d = We(n, t);
     d !== null && (s[c] = d);
   }
   return s;
@@ -1174,7 +1179,7 @@ function Lt(r) {
   const e = r.filter(Number.isFinite), t = Math.min(...e), i = Math.max(...e), s = i - t || Math.abs(i) * 0.1 || 1;
   return { lo: t - s * 0.18, hi: i + s * 0.18 };
 }
-function Ze(r, e = {}) {
+function Ye(r, e = {}) {
   const t = e.w ?? nt, i = e.h ?? ct, s = e.dots ?? !0, a = r.filter((b) => b.values.some(Number.isFinite));
   if (!a.length) return p;
   const { lo: o, hi: n } = Lt(a.flatMap((b) => b.values)), c = Math.max(...a.map((b) => b.values.length)), d = e.yFmt ? [n - (n - o) * 0.08, (o + n) / 2, o + (n - o) * 0.08] : [], { padL: l, padB: h } = lt(e, d), g = (b) => l + b * (t - l - F) / Math.max(c - 1, 1), f = (b) => i - h - (b - o) / (n - o) * (i - h - F), _ = d.map(
@@ -1209,7 +1214,7 @@ function Ze(r, e = {}) {
     ${_}${k}${$}
   </svg>`;
 }
-function Ye(r, e, t, i = {}) {
+function Ze(r, e, t, i = {}) {
   const s = i.w ?? nt, a = i.h ?? ct;
   if (!r.some((m) => Number.isFinite(m) && m > 0)) return p;
   const o = r.map((m) => Number.isFinite(m) && m > 0 ? m : 0), n = Math.max(...o, t ?? 0) || 1, c = o.length, d = i.yFmt ? [n, n / 2] : [], { padL: l, padB: h } = lt(i, d), g = (s - l - F) / c, f = Math.min(g * 0.55, 14), _ = (m) => m / n * (a - h - F), k = d.map(
@@ -1352,10 +1357,10 @@ function It(r, e, t) {
 function Gt(r, e, t, i, s) {
   return r === "material" ? jt(e, t, i) : r === "bubble" ? ve(t, i, 15) : r === "mirror" ? ve("#fff", i, 7) : r === "glass" ? Ut(t, i, s) : r === "default" ? ve(t, i, 10) : Bt(t, i, s);
 }
-var Wt = Object.defineProperty, Vt = Object.getOwnPropertyDescriptor, pe = (r, e, t, i) => {
-  for (var s = i > 1 ? void 0 : i ? Vt(e, t) : e, a = r.length - 1, o; a >= 0; a--)
+var Vt = Object.defineProperty, Wt = Object.getOwnPropertyDescriptor, pe = (r, e, t, i) => {
+  for (var s = i > 1 ? void 0 : i ? Wt(e, t) : e, a = r.length - 1, o; a >= 0; a--)
     (o = r[a]) && (s = (i ? o(e, t, s) : o(s)) || s);
-  return i && s && Wt(e, t, s), s;
+  return i && s && Vt(e, t, s), s;
 };
 const Kt = Object.keys(H), qt = ["body_composition", "nutrition"], xe = {
   en: {
@@ -1421,6 +1426,7 @@ const Kt = Object.keys(H), qt = ["body_composition", "nutrition"], xe = {
     bc_full: "Full body",
     bc_upper: "Upper body",
     figure_zoom: "Zoom",
+    figure_offset_y: "Vertical offset %",
     tired_below: "Eye shadows below score",
     dot: "Dot position",
     dot_left: "left",
@@ -1532,6 +1538,7 @@ const Kt = Object.keys(H), qt = ["body_composition", "nutrition"], xe = {
     bc_full: "Ganzer Körper",
     bc_upper: "Oberkörper",
     figure_zoom: "Zoom",
+    figure_offset_y: "Vertikaler Versatz %",
     tired_below: "Augenringe unter Score",
     dot: "Punkt-Position",
     dot_left: "links",
@@ -1581,7 +1588,7 @@ const Kt = Object.keys(H), qt = ["body_composition", "nutrition"], xe = {
     trend_none: "Ausblenden"
   }
 };
-let Z = class extends V {
+let Y = class extends W {
   constructor() {
     super(...arguments), this._expanded = -1;
   }
@@ -1810,6 +1817,12 @@ let Z = class extends V {
                 name: "figure_zoom",
                 selector: {
                   number: { min: 0.5, max: 3, step: 0.1, mode: "slider" }
+                }
+              },
+              {
+                name: "figure_offset_y",
+                selector: {
+                  number: { min: -40, max: 40, step: 1, mode: "slider" }
                 }
               }
             ]
@@ -2113,7 +2126,7 @@ let Z = class extends V {
     s < 0 || s >= i.length || ([i[e], i[s]] = [i[s], i[e]], this._expanded === e && (this._expanded = s), this._emit({ ...this._config, metrics: i }));
   }
 };
-Z.styles = et`
+Y.styles = et`
     .metrics {
       display: flex;
       flex-direction: column;
@@ -2244,22 +2257,22 @@ Z.styles = et`
   `;
 pe([
   Me({ attribute: !1 })
-], Z.prototype, "hass", 2);
+], Y.prototype, "hass", 2);
 pe([
   R()
-], Z.prototype, "_config", 2);
+], Y.prototype, "_config", 2);
 pe([
   R()
-], Z.prototype, "_expanded", 2);
-Z = pe([
+], Y.prototype, "_expanded", 2);
+Y = pe([
   at("health-card-editor")
-], Z);
-var Zt = Object.defineProperty, Yt = Object.getOwnPropertyDescriptor, z = (r, e, t, i) => {
-  for (var s = i > 1 ? void 0 : i ? Yt(e, t) : e, a = r.length - 1, o; a >= 0; a--)
+], Y);
+var Yt = Object.defineProperty, Zt = Object.getOwnPropertyDescriptor, z = (r, e, t, i) => {
+  for (var s = i > 1 ? void 0 : i ? Zt(e, t) : e, a = r.length - 1, o; a >= 0; a--)
     (o = r[a]) && (s = (i ? o(e, t, s) : o(s)) || s);
-  return i && s && Zt(e, t, s), s;
+  return i && s && Yt(e, t, s), s;
 };
-const Xt = "0.11.1", Jt = 5 * 60 * 1e3, Qt = 15 * 60 * 1e3, er = ["default", "withings", "glass", "material", "bubble", "mirror"], ae = [
+const Xt = "0.11.2", Jt = 5 * 60 * 1e3, Qt = 15 * 60 * 1e3, er = ["default", "withings", "glass", "material", "bubble", "mirror"], ae = [
   { key: "day", kind: "hour", count: 24 },
   { key: "week", kind: "day", count: 7 },
   { key: "month", kind: "day", count: 30 },
@@ -2267,7 +2280,7 @@ const Xt = "0.11.1", Jt = 5 * 60 * 1e3, Qt = 15 * 60 * 1e3, er = ["default", "wi
   { key: "year", kind: "day", count: 365 },
   { key: "max", kind: "month", count: 60 }
 ];
-let E = class extends V {
+let E = class extends W {
   constructor() {
     super(...arguments), this._history = {}, this._popup = null, this._popupRange = null, this._tileRanges = {}, this._statsCache = {}, this._statsCacheTime = {}, this._statsFetching = /* @__PURE__ */ new Set(), this._onKeydown = (r) => {
       r.key === "Escape" && this._popup !== null && (this._popup = null);
@@ -2761,11 +2774,24 @@ let E = class extends V {
                 class="body-glow"
                 style="--hc-glow:${b};opacity:${$}"
               ></div>` : p}
+          ${f > 0 ? u`<div
+                class="body-fever"
+                style="left:${t.fever_x ?? 50}%;top:${t.fever_y ?? 14}%;opacity:${f}"
+              ></div>` : p}
+          ${l > 0 ? u`<div
+                class="body-tired"
+                style="left:${t.tired_x ?? 50}%;top:${t.tired_y ?? 15}%;opacity:${0.25 + l * 0.6}"
+              >
+                <span></span><span></span>
+              </div>` : p}
           <div
             class="bodyframe ${t.body_crop === "upper" ? "crop-upper" : ""} ${C ? "fade" : ""}"
             style="--hc-frame-ar:${this._frameAspect(t)}"
           >
-            <div class="bodystage" style="--hc-zoom:${t.figure_zoom ?? 1}">
+            <div
+              class="bodystage"
+              style="--hc-zoom:${t.figure_zoom ?? 1};--hc-oy:${t.figure_offset_y ?? (A ? -3 : 0)}%"
+            >
               ${A ? u`<img class="bodyimg" src=${this._bodyImage(t, o)} alt="" />` : Pt({
       gender: t.gender ?? "female",
       shape: o,
@@ -2773,16 +2799,6 @@ let E = class extends V {
       glowColor: b,
       cuff: y
     })}
-              ${f > 0 ? u`<div
-                    class="body-fever"
-                    style="left:${t.fever_x ?? 50}%;top:${t.fever_y ?? 12}%;opacity:${f}"
-                  ></div>` : p}
-              ${l > 0 ? u`<div
-                    class="body-tired"
-                    style="left:${t.tired_x ?? 50}%;top:${t.tired_y ?? 13}%;opacity:${0.25 + l * 0.6}"
-                  >
-                    <span></span><span></span>
-                  </div>` : p}
             </div>
           </div>
           ${v.map((M, N) => this._renderAnchor(M, N, t))}
@@ -2824,7 +2840,7 @@ let E = class extends V {
    * the card. Full fits the whole portrait figure; upper is a wide band.
    */
   _frameAspect(r) {
-    return r.body_crop === "upper" ? 1.15 : 0.64;
+    return r.body_crop === "upper" ? 1.15 : 0.68;
   }
   /** Base URL for bundled figure images (served next to the card by default). */
   _figureBase(r) {
@@ -3043,12 +3059,12 @@ let E = class extends V {
       dots: e.kind === "day" && d <= 14,
       yFmt: f,
       xMarks: this._xMarks(e.kind, d)
-    }, k = h === "bar" ? Ye(
+    }, k = h === "bar" ? Ze(
       e.data[0].buckets,
       e.data[0].colorResolved,
       Number.isFinite(o) ? o : void 0,
       _
-    ) : Ze(
+    ) : Ye(
       e.data.map((m) => ({ values: m.filled, color: m.colorResolved })),
       _
     ), $ = Math.min(d, 91), b = e.type === "sleep" && e.kind === "day" && r.score_entity && this.hass.states[r.score_entity] ? this._renderScoreCalendar(
@@ -3274,12 +3290,12 @@ let E = class extends V {
   }
   _renderChart(r, e, t, i, s) {
     if (e === "line")
-      return u`${Ze(
+      return u`${Ye(
         t.map((a) => ({ values: a.filled, color: a.colorResolved }))
       )}`;
     if (e === "bar") {
       const a = this._resolveGoal(r.goal);
-      return u`${Ye(
+      return u`${Ze(
         t[0].buckets,
         t[0].colorResolved,
         Number.isFinite(a) ? a : void 0
@@ -3995,43 +4011,47 @@ E.styles = et`
     }
     .bodywrap {
       position: relative;
-      width: min(215px, 96%);
+      width: min(300px, 100%);
       margin: 0 auto;
     }
-    /* fixed-height frame: zoom magnifies the inner stage in place (card height
-       stays constant) and the frame clips the overflow — including the fever /
-       eye-shadow overlays, so they never bleed into the header. */
+    /* fixed-height, playing-card-ish frame. the frame clips the FIGURE (so
+       feet never spill onto the value text) with a soft bottom fade; the
+       energy / fever / eye-shadow glows live outside the frame (bodywrap
+       siblings) so they can spill freely over the edges. zoom magnifies the
+       inner stage in place, keeping the card height constant. */
     .bodyframe {
       position: relative;
       width: 100%;
-      aspect-ratio: var(--hc-frame-ar, 0.64);
+      aspect-ratio: var(--hc-frame-ar, 0.68);
       overflow: hidden;
+    }
+    .bodyframe.fade {
+      -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 78%, transparent 100%);
+    }
+    .bodyframe.fade.crop-upper {
+      -webkit-mask-image: linear-gradient(to bottom, #000 66%, transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 66%, transparent 100%);
     }
     .bodystage {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      transform: scale(var(--hc-zoom, 1));
-      transform-origin: 50% 6%;
-    }
-    .bodyframe.crop-upper .bodystage {
+      inset: 0;
+      transform: translateY(var(--hc-oy, 0%)) scale(var(--hc-zoom, 1));
       transform-origin: 50% 0;
     }
-    .bodyfig,
+    /* figure fits the frame (head-aligned to the top); nearly no letterbox
+       since the images and the drawn svg are both portrait */
     .bodyimg {
       width: 100%;
-      height: auto;
+      height: 100%;
+      object-fit: contain;
+      object-position: 50% 0;
       display: block;
     }
-    /* soft bottom fade so the figure blends into the card (no hard edge) */
-    .bodyframe.fade {
-      -webkit-mask-image: linear-gradient(to bottom, #000 86%, transparent 100%);
-      mask-image: linear-gradient(to bottom, #000 86%, transparent 100%);
-    }
-    .bodyframe.fade.crop-upper {
-      -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
-      mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+    .bodyfig {
+      width: 100%;
+      height: 100%;
+      display: block;
     }
     .unblack-defs {
       position: absolute;

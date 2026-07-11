@@ -174,6 +174,8 @@ export interface MetricConfig {
   body_crop?: 'full' | 'upper';
   /** Body metrics: zoom factor for the figure (default 1) */
   figure_zoom?: number;
+  /** Body metrics: vertical nudge of the figure in percent (negative = up) */
+  figure_offset_y?: number;
   /** Body metrics: value labels pinned to body parts */
   anchors?: BodyAnchor[];
   /** Body metrics: label chip background opacity (0-1, default 1) */

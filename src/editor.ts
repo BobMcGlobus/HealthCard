@@ -78,6 +78,7 @@ const LABELS: Record<string, Record<string, string>> = {
     bc_full: 'Full body',
     bc_upper: 'Upper body',
     figure_zoom: 'Zoom',
+    figure_offset_y: 'Vertical offset %',
     tired_below: 'Eye shadows below score',
     dot: 'Dot position',
     dot_left: 'left',
@@ -189,6 +190,7 @@ const LABELS: Record<string, Record<string, string>> = {
     bc_full: 'Ganzer Körper',
     bc_upper: 'Oberkörper',
     figure_zoom: 'Zoom',
+    figure_offset_y: 'Vertikaler Versatz %',
     tired_below: 'Augenringe unter Score',
     dot: 'Punkt-Position',
     dot_left: 'links',
@@ -495,6 +497,12 @@ export class HealthCardEditor extends LitElement {
                     name: 'figure_zoom',
                     selector: {
                       number: { min: 0.5, max: 3, step: 0.1, mode: 'slider' },
+                    },
+                  },
+                  {
+                    name: 'figure_offset_y',
+                    selector: {
+                      number: { min: -40, max: 40, step: 1, mode: 'slider' },
                     },
                   },
                 ],

@@ -166,7 +166,12 @@ export function bodyFigure(o: BodyOpts): TemplateResult {
   const cuffX = 100 + (sh + 7);
   const cuffAngle = 14;
 
-  return html`<svg class="bodyfig" viewBox="0 0 200 330" aria-hidden="true">
+  return html`<svg
+    class="bodyfig"
+    viewBox="0 0 200 330"
+    preserveAspectRatio="xMidYMin meet"
+    aria-hidden="true"
+  >
     <defs>
       <linearGradient id="hc-body-fill" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" style="stop-color: var(--hc-body-top)" />

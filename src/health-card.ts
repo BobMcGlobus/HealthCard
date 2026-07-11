@@ -33,7 +33,7 @@ import { barChart, cycleRing, lineChart, scoreGraphic } from './charts';
 import type { AxisMark, ChartOpts, CycleSegment } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.11.1';
+const CARD_VERSION = '0.11.2';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
@@ -861,13 +861,32 @@ export class HealthCard extends LitElement {
                 style="--hc-glow:${glowColor};opacity:${glow}"
               ></div>`
             : nothing}
+          ${fever > 0
+            ? html`<div
+                class="body-fever"
+                style="left:${m.fever_x ?? 50}%;top:${m.fever_y ?? 14}%;opacity:${fever}"
+              ></div>`
+            : nothing}
+          ${tired > 0
+            ? html`<div
+                class="body-tired"
+                style="left:${m.tired_x ?? 50}%;top:${m.tired_y ?? 15}%;opacity:${0.25 +
+                tired * 0.6}"
+              >
+                <span></span><span></span>
+              </div>`
+            : nothing}
           <div
             class="bodyframe ${m.body_crop === 'upper' ? 'crop-upper' : ''} ${fade
               ? 'fade'
               : ''}"
             style="--hc-frame-ar:${this._frameAspect(m)}"
           >
-            <div class="bodystage" style="--hc-zoom:${m.figure_zoom ?? 1}">
+            <div
+              class="bodystage"
+              style="--hc-zoom:${m.figure_zoom ?? 1};--hc-oy:${m.figure_offset_y ??
+              (isImg ? -3 : 0)}%"
+            >
               ${isImg
                 ? html`<img class="bodyimg" src=${this._bodyImage(m, shape)!} alt="" />`
                 : bodyFigure({
@@ -879,21 +898,6 @@ export class HealthCard extends LitElement {
                     glowColor,
                     cuff,
                   })}
-              ${fever > 0
-                ? html`<div
-                    class="body-fever"
-                    style="left:${m.fever_x ?? 50}%;top:${m.fever_y ?? 12}%;opacity:${fever}"
-                  ></div>`
-                : nothing}
-              ${tired > 0
-                ? html`<div
-                    class="body-tired"
-                    style="left:${m.tired_x ?? 50}%;top:${m.tired_y ?? 13}%;opacity:${0.25 +
-                    tired * 0.6}"
-                  >
-                    <span></span><span></span>
-                  </div>`
-                : nothing}
             </div>
           </div>
           ${anchors.map((a, i) => this._renderAnchor(a, i, m))}
@@ -946,7 +950,7 @@ export class HealthCard extends LitElement {
    * the card. Full fits the whole portrait figure; upper is a wide band.
    */
   private _frameAspect(m: MetricConfig): number {
-    return m.body_crop === 'upper' ? 1.15 : 0.64;
+    return m.body_crop === 'upper' ? 1.15 : 0.68;
   }
 
   /** Base URL for bundled figure images (served next to the card by default). */
@@ -2315,43 +2319,47 @@ export class HealthCard extends LitElement {
     }
     .bodywrap {
       position: relative;
-      width: min(215px, 96%);
+      width: min(300px, 100%);
       margin: 0 auto;
     }
-    /* fixed-height frame: zoom magnifies the inner stage in place (card height
-       stays constant) and the frame clips the overflow — including the fever /
-       eye-shadow overlays, so they never bleed into the header. */
+    /* fixed-height, playing-card-ish frame. the frame clips the FIGURE (so
+       feet never spill onto the value text) with a soft bottom fade; the
+       energy / fever / eye-shadow glows live outside the frame (bodywrap
+       siblings) so they can spill freely over the edges. zoom magnifies the
+       inner stage in place, keeping the card height constant. */
     .bodyframe {
       position: relative;
       width: 100%;
-      aspect-ratio: var(--hc-frame-ar, 0.64);
+      aspect-ratio: var(--hc-frame-ar, 0.68);
       overflow: hidden;
+    }
+    .bodyframe.fade {
+      -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 78%, transparent 100%);
+    }
+    .bodyframe.fade.crop-upper {
+      -webkit-mask-image: linear-gradient(to bottom, #000 66%, transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 66%, transparent 100%);
     }
     .bodystage {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      transform: scale(var(--hc-zoom, 1));
-      transform-origin: 50% 6%;
-    }
-    .bodyframe.crop-upper .bodystage {
+      inset: 0;
+      transform: translateY(var(--hc-oy, 0%)) scale(var(--hc-zoom, 1));
       transform-origin: 50% 0;
     }
-    .bodyfig,
+    /* figure fits the frame (head-aligned to the top); nearly no letterbox
+       since the images and the drawn svg are both portrait */
     .bodyimg {
       width: 100%;
-      height: auto;
+      height: 100%;
+      object-fit: contain;
+      object-position: 50% 0;
       display: block;
     }
-    /* soft bottom fade so the figure blends into the card (no hard edge) */
-    .bodyframe.fade {
-      -webkit-mask-image: linear-gradient(to bottom, #000 86%, transparent 100%);
-      mask-image: linear-gradient(to bottom, #000 86%, transparent 100%);
-    }
-    .bodyframe.fade.crop-upper {
-      -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
-      mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+    .bodyfig {
+      width: 100%;
+      height: 100%;
+      display: block;
     }
     .unblack-defs {
       position: absolute;
