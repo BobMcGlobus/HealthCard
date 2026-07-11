@@ -270,23 +270,19 @@ const config = {
       goal: 'sensor.zielgewicht',
       start: 'sensor.startgewicht',
       score_entity: 'sensor.gesundheitsscore',
-      image_remove_black: true,
-      images: {
-        slim: '/Bilder import/Liqid Glass Demo/male_underweight.png',
-        regular: '/Bilder import/Liqid Glass Demo/male_normal.png',
-        full: '/Bilder import/Liqid Glass Demo/male_overweight.png',
-      },
+      figure_style: 'glass',
+      figure_base: '/figures/',
       anchors: [
-        { entity: 'sensor.puls', name: 'Puls', x: 55, y: 30 },
+        { entity: 'sensor.puls', name: 'Puls', x: 55, y: 26 },
         {
           entity: 'sensor.blutdruck_sys',
           entity2: 'sensor.blutdruck_dia',
           name: 'Blutdruck',
-          x: 72,
-          y: 38,
+          x: 70,
+          y: 30,
         },
-        { entity: 'sensor.fettanteil', name: 'Fett', x: 50, y: 48 },
-        { entity: 'sensor.muskelmasse', name: 'Muskeln', x: 22, y: 16 },
+        { entity: 'sensor.fettanteil', name: 'Fett', x: 50, y: 44 },
+        { entity: 'sensor.muskelmasse', name: 'Muskeln', x: 33, y: 16 },
       ],
     },
     {
@@ -378,4 +374,13 @@ document.getElementById('style').addEventListener('click', () => {
       : next === 'mirror'
         ? '#000'
         : '';
+});
+
+const FIGURES = ['glass', 'pixar', 'mannequin', 'flat', 'svg'];
+document.getElementById('figure').addEventListener('click', () => {
+  const cur = current.metrics.find((m) => m.name === 'Körper (Bilder)').figure_style;
+  const next = FIGURES[(FIGURES.indexOf(cur) + 1) % FIGURES.length];
+  current.metrics.find((m) => m.name === 'Körper (Bilder)').figure_style = next;
+  card.setConfig({ ...current });
+  document.getElementById('figure').textContent = `Figur: ${next}`;
 });

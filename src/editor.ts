@@ -68,6 +68,12 @@ const LABELS: Record<string, Record<string, string>> = {
     add_anchor: 'Add label',
     anchor_x: 'X %',
     anchor_y: 'Y %',
+    figure_style: 'Figure style',
+    fs_svg: 'Drawn (SVG)',
+    fs_flat: 'Flat silhouette',
+    fs_glass: 'Liquid Glass',
+    fs_mannequin: 'Mannequin',
+    fs_pixar: 'Soft 3D',
     type: 'Type',
     entity: 'Entity',
     entity2: 'Second entity (e.g. diastolic)',
@@ -151,6 +157,12 @@ const LABELS: Record<string, Record<string, string>> = {
     add_anchor: 'Label hinzufügen',
     anchor_x: 'X %',
     anchor_y: 'Y %',
+    figure_style: 'Figur-Stil',
+    fs_svg: 'Gezeichnet (SVG)',
+    fs_flat: 'Flache Silhouette',
+    fs_glass: 'Liquid Glass',
+    fs_mannequin: 'Schaufensterpuppe',
+    fs_pixar: 'Weiches 3D',
     type: 'Typ',
     entity: 'Entität',
     entity2: 'Zweite Entität (z. B. diastolisch)',
@@ -411,6 +423,18 @@ export class HealthCardEditor extends LitElement {
                       select: {
                         mode: 'dropdown',
                         options: opts(['female', 'male'], 'gender'),
+                      },
+                    },
+                  },
+                  {
+                    name: 'figure_style',
+                    selector: {
+                      select: {
+                        mode: 'dropdown',
+                        options: opts(
+                          ['svg', 'flat', 'glass', 'mannequin', 'pixar'],
+                          'fs'
+                        ),
                       },
                     },
                   },

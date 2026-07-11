@@ -33,7 +33,7 @@ import { barChart, lineChart, scoreGraphic } from './charts';
 import type { AxisMark, ChartOpts } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.8.1';
+const CARD_VERSION = '0.9.0';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
@@ -832,12 +832,30 @@ export class HealthCard extends LitElement {
     `;
   }
 
-  /** User-supplied figure image for the current weight state, if configured. */
+  /** Figure image URL for the current weight state, if any is configured. */
   private _bodyImage(m: MetricConfig, shape: number): string | undefined {
+    const state = shape < -0.12 ? 'slim' : shape < 0.35 ? 'regular' : 'full';
+    // bundled figure sets (figure_style) take precedence over custom images
+    if (m.figure_style && m.figure_style !== 'svg') {
+      const gender = m.gender ?? 'female';
+      const weight =
+        state === 'slim' ? 'underweight' : state === 'full' ? 'overweight' : 'normal';
+      return `${this._figureBase(m)}${m.figure_style}/${gender}_${weight}.png`;
+    }
     if (!m.images) return undefined;
     const preferred =
-      shape < -0.12 ? m.images.slim : shape < 0.35 ? m.images.regular : m.images.full;
+      state === 'slim' ? m.images.slim : state === 'full' ? m.images.full : m.images.regular;
     return preferred ?? m.images.regular ?? m.images.slim ?? m.images.full;
+  }
+
+  /** Base URL for bundled figure images (served next to the card by default). */
+  private _figureBase(m: MetricConfig): string {
+    if (m.figure_base) return m.figure_base.endsWith('/') ? m.figure_base : `${m.figure_base}/`;
+    try {
+      return new URL('figures/', import.meta.url).href;
+    } catch {
+      return '/figures/';
+    }
   }
 
   private _renderAnchor(a: BodyAnchor, i: number): TemplateResult | typeof nothing {

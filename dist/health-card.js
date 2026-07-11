@@ -285,8 +285,8 @@ I.elementStyles = [], I.shadowRootOptions = { mode: "open" }, I[J("elementProper
  * SPDX-License-Identifier: BSD-3-Clause
  */
 const Q = globalThis, Re = (t) => t, le = Q.trustedTypes, Oe = le ? le.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, tt = "$lit$", F = `lit$${Math.random().toFixed(9).slice(2)}$`, rt = "?" + F, xt = `<${rt}>`, B = document, ee = () => B.createComment(""), te = (t) => t === null || typeof t != "object" && typeof t != "function", Ae = Array.isArray, vt = (t) => Ae(t) || typeof (t == null ? void 0 : t[Symbol.iterator]) == "function", fe = `[ 	
-\f\r]`, Y = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, ze = /-->/g, He = />/g, R = RegExp(`>|${fe}(?:([^\\s"'>=/]+)(${fe}*=${fe}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`, "g"), Le = /'/g, Be = /"/g, it = /^(?:script|style|textarea|title)$/i, st = (t) => (e, ...r) => ({ _$litType$: t, strings: e, values: r }), u = st(1), v = st(2), W = Symbol.for("lit-noChange"), p = Symbol.for("lit-nothing"), Ue = /* @__PURE__ */ new WeakMap(), O = B.createTreeWalker(B, 129);
+\f\r]`, Y = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, ze = /-->/g, Le = />/g, R = RegExp(`>|${fe}(?:([^\\s"'>=/]+)(${fe}*=${fe}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`, "g"), He = /'/g, Be = /"/g, it = /^(?:script|style|textarea|title)$/i, st = (t) => (e, ...r) => ({ _$litType$: t, strings: e, values: r }), u = st(1), v = st(2), W = Symbol.for("lit-noChange"), p = Symbol.for("lit-nothing"), Ue = /* @__PURE__ */ new WeakMap(), O = B.createTreeWalker(B, 129);
 function ot(t, e) {
   if (!Ae(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
   return Oe !== void 0 ? Oe.createHTML(e) : e;
@@ -297,7 +297,7 @@ const $t = (t, e) => {
   for (let n = 0; n < r; n++) {
     const c = t[n];
     let d, l, h = -1, g = 0;
-    for (; g < c.length && (o.lastIndex = g, l = o.exec(c), l !== null); ) g = o.lastIndex, o === Y ? l[1] === "!--" ? o = ze : l[1] !== void 0 ? o = He : l[2] !== void 0 ? (it.test(l[2]) && (s = RegExp("</" + l[2], "g")), o = R) : l[3] !== void 0 && (o = R) : o === R ? l[0] === ">" ? (o = s ?? Y, h = -1) : l[1] === void 0 ? h = -2 : (h = o.lastIndex - l[2].length, d = l[1], o = l[3] === void 0 ? R : l[3] === '"' ? Be : Le) : o === Be || o === Le ? o = R : o === ze || o === He ? o = Y : (o = R, s = void 0);
+    for (; g < c.length && (o.lastIndex = g, l = o.exec(c), l !== null); ) g = o.lastIndex, o === Y ? l[1] === "!--" ? o = ze : l[1] !== void 0 ? o = Le : l[2] !== void 0 ? (it.test(l[2]) && (s = RegExp("</" + l[2], "g")), o = R) : l[3] !== void 0 && (o = R) : o === R ? l[0] === ">" ? (o = s ?? Y, h = -1) : l[1] === void 0 ? h = -2 : (h = o.lastIndex - l[2].length, d = l[1], o = l[3] === void 0 ? R : l[3] === '"' ? Be : He) : o === Be || o === He ? o = R : o === ze || o === Le ? o = Y : (o = R, s = void 0);
     const b = o === R && t[n + 1].startsWith("/>") ? " " : "";
     a += o === Y ? c + xt : h >= 0 ? (i.push(d), c.slice(0, h) + tt + c.slice(h) + F + b) : c + F + (h === -2 ? n : b);
   }
@@ -520,7 +520,7 @@ const Et = (t, e, r) => {
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const H = globalThis;
+const L = globalThis;
 class G extends I {
   constructor() {
     super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
@@ -547,10 +547,10 @@ class G extends I {
   }
 }
 var Je;
-G._$litElement$ = !0, G.finalized = !0, (Je = H.litElementHydrateSupport) == null || Je.call(H, { LitElement: G });
-const ye = H.litElementPolyfillSupport;
+G._$litElement$ = !0, G.finalized = !0, (Je = L.litElementHydrateSupport) == null || Je.call(L, { LitElement: G });
+const ye = L.litElementPolyfillSupport;
 ye == null || ye({ LitElement: G });
-(H.litElementVersions ?? (H.litElementVersions = [])).push("4.2.2");
+(L.litElementVersions ?? (L.litElementVersions = [])).push("4.2.2");
 /**
  * @license
  * Copyright 2017 Google LLC
@@ -984,16 +984,16 @@ const We = {
     event_times: "Uhrzeiten (7 Tage)"
   }
 };
-function L(t) {
+function H(t) {
   var r;
   return (((r = t == null ? void 0 : t.locale) == null ? void 0 : r.language) ?? (t == null ? void 0 : t.language) ?? "en").startsWith("de") ? "de" : "en";
 }
 function $(t, e) {
-  return We[L(t)][e] ?? We.en[e] ?? e;
+  return We[H(t)][e] ?? We.en[e] ?? e;
 }
 function w(t, e, r) {
   if (!Number.isFinite(e)) return "–";
-  const i = L(t) === "de" ? "de-DE" : "en-US";
+  const i = H(t) === "de" ? "de-DE" : "en-US";
   return r === void 0 ? new Intl.NumberFormat(i, { maximumFractionDigits: 2 }).format(e) : new Intl.NumberFormat(i, {
     minimumFractionDigits: r,
     maximumFractionDigits: r
@@ -1013,7 +1013,7 @@ function oe(t, e) {
 function X(t, e) {
   const r = new Date(e);
   if (isNaN(r.getTime())) return "";
-  const i = L(t) === "de" ? "de-DE" : "en-US", s = /* @__PURE__ */ new Date(), a = (n, c) => n.getFullYear() === c.getFullYear() && n.getMonth() === c.getMonth() && n.getDate() === c.getDate();
+  const i = H(t) === "de" ? "de-DE" : "en-US", s = /* @__PURE__ */ new Date(), a = (n, c) => n.getFullYear() === c.getFullYear() && n.getMonth() === c.getMonth() && n.getDate() === c.getDate();
   if (a(r, s))
     return r.toLocaleTimeString(i, { hour: "numeric", minute: "2-digit" });
   const o = new Date(s.getTime() - 864e5);
@@ -1085,7 +1085,7 @@ async function Ot(t, e, r, i = "day") {
 function Ve(t, e) {
   return e === "min" ? t.min : e === "max" || e === "sum" ? t.max ?? t.mean : e === "last" ? t.state ?? t.mean : t.mean;
 }
-function Ke(t, e, r, i = "day") {
+function qe(t, e, r, i = "day") {
   const s = new Array(e).fill(NaN);
   if (i === "month") {
     const n = /* @__PURE__ */ new Date(), c = n.getFullYear() * 12 + n.getMonth();
@@ -1132,7 +1132,7 @@ function zt(t, e, r) {
     }
   });
 }
-function qe(t) {
+function Ke(t) {
   const e = [...t];
   let r = NaN;
   for (let s = 0; s < e.length; s++)
@@ -1152,14 +1152,14 @@ function lt(t, e) {
   const r = t.yFmt ? Math.max(26, ...e.map((a) => t.yFmt(a).length * 5.6 + 10)) : E, i = (s = t.xMarks) != null && s.some((a) => a.label) ? 15 : E;
   return { padL: r, padB: i };
 }
-function Ht(t) {
+function Lt(t) {
   const e = t.filter(Number.isFinite), r = Math.min(...e), i = Math.max(...e), s = i - r || Math.abs(i) * 0.1 || 1;
   return { lo: r - s * 0.18, hi: i + s * 0.18 };
 }
 function Ye(t, e = {}) {
   const r = e.w ?? nt, i = e.h ?? ct, s = e.dots ?? !0, a = t.filter((f) => f.values.some(Number.isFinite));
   if (!a.length) return p;
-  const { lo: o, hi: n } = Ht(a.flatMap((f) => f.values)), c = Math.max(...a.map((f) => f.values.length)), d = e.yFmt ? [n - (n - o) * 0.08, (o + n) / 2, o + (n - o) * 0.08] : [], { padL: l, padB: h } = lt(e, d), g = (f) => l + f * (r - l - E) / Math.max(c - 1, 1), b = (f) => i - h - (f - o) / (n - o) * (i - h - E), _ = d.map(
+  const { lo: o, hi: n } = Lt(a.flatMap((f) => f.values)), c = Math.max(...a.map((f) => f.values.length)), d = e.yFmt ? [n - (n - o) * 0.08, (o + n) / 2, o + (n - o) * 0.08] : [], { padL: l, padB: h } = lt(e, d), g = (f) => l + f * (r - l - E) / Math.max(c - 1, 1), b = (f) => i - h - (f - o) / (n - o) * (i - h - E), _ = d.map(
     (f) => v`
       <line x1=${l} x2=${r - E} y1=${b(f)} y2=${b(f)}
         stroke=${de} stroke-width="1" stroke-dasharray="2 3"/>
@@ -1220,7 +1220,7 @@ const Xe = [
   "var(--amber-color, #FFC107)",
   "var(--purple-color, #9C27B0)",
   "var(--pink-color, #E91E63)"
-], Lt = "color-mix(in srgb, var(--primary-text-color) 16%, transparent)";
+], Ht = "color-mix(in srgb, var(--primary-text-color) 16%, transparent)";
 function Bt(t, e, r) {
   const i = (o) => Math.abs(Math.sin(o * 127.1) * 43758.5453 % 1), s = (o) => {
     if (!(r != null && r.length))
@@ -1234,7 +1234,7 @@ function Bt(t, e, r) {
   for (let o = 0; o < 2; o++) {
     const n = o === 0 ? 74 : 88, c = o === 0 ? 26 : 32;
     for (let d = 0; d < c; d++) {
-      const l = d / c, h = l * Math.PI * 2 - Math.PI / 2 + i(d + o * 100) * 0.12, g = n + (i(d * 3 + o * 7) - 0.5) * 6, b = 2.4 + i(d * 7 + o * 13) * 2.4, _ = l < e ? s(d * 11 + o * 29) : Lt;
+      const l = d / c, h = l * Math.PI * 2 - Math.PI / 2 + i(d + o * 100) * 0.12, g = n + (i(d * 3 + o * 7) - 0.5) * 6, b = 2.4 + i(d * 7 + o * 13) * 2.4, _ = l < e ? s(d * 11 + o * 29) : Ht;
       a.push(
         v`<circle cx=${100 + Math.cos(h) * g} cy=${100 + Math.sin(h) * g}
           r=${b} fill=${_} opacity="0.75"/>`
@@ -1321,7 +1321,7 @@ var Gt = Object.defineProperty, Wt = Object.getOwnPropertyDescriptor, pe = (t, e
     (o = t[a]) && (s = (i ? o(e, r, s) : o(s)) || s);
   return i && s && Gt(e, r, s), s;
 };
-const Vt = Object.keys(z), Kt = ["body_composition", "nutrition"], ve = {
+const Vt = Object.keys(z), qt = ["body_composition", "nutrition"], ve = {
   en: {
     title: "Title",
     subtitle: "Subtitle",
@@ -1375,6 +1375,12 @@ const Vt = Object.keys(z), Kt = ["body_composition", "nutrition"], ve = {
     add_anchor: "Add label",
     anchor_x: "X %",
     anchor_y: "Y %",
+    figure_style: "Figure style",
+    fs_svg: "Drawn (SVG)",
+    fs_flat: "Flat silhouette",
+    fs_glass: "Liquid Glass",
+    fs_mannequin: "Mannequin",
+    fs_pixar: "Soft 3D",
     type: "Type",
     entity: "Entity",
     entity2: "Second entity (e.g. diastolic)",
@@ -1458,6 +1464,12 @@ const Vt = Object.keys(z), Kt = ["body_composition", "nutrition"], ve = {
     add_anchor: "Label hinzufügen",
     anchor_x: "X %",
     anchor_y: "Y %",
+    figure_style: "Figur-Stil",
+    fs_svg: "Gezeichnet (SVG)",
+    fs_flat: "Flache Silhouette",
+    fs_glass: "Liquid Glass",
+    fs_mannequin: "Schaufensterpuppe",
+    fs_pixar: "Weiches 3D",
     type: "Typ",
     entity: "Entität",
     entity2: "Zweite Entität (z. B. diastolisch)",
@@ -1489,7 +1501,7 @@ const Vt = Object.keys(z), Kt = ["body_composition", "nutrition"], ve = {
     trend_none: "Ausblenden"
   }
 };
-let K = class extends G {
+let q = class extends G {
   constructor() {
     super(...arguments), this._expanded = -1;
   }
@@ -1497,7 +1509,7 @@ let K = class extends G {
     this._config = t;
   }
   _label(t) {
-    return (ve[L(this.hass)] ?? ve.en)[t] ?? ve.en[t] ?? t;
+    return (ve[H(this.hass)] ?? ve.en)[t] ?? ve.en[t] ?? t;
   }
   _topSchema() {
     return [
@@ -1567,7 +1579,7 @@ let K = class extends G {
       },
       { name: "entity", selector: { entity: {} } },
       ...e === "blood_pressure" ? [{ name: "entity2", selector: { entity: {} } }] : [],
-      ...Kt.includes(e) && i ? [{ name: "entities", selector: { entity: { multiple: !0 } } }] : [],
+      ...qt.includes(e) && i ? [{ name: "entities", selector: { entity: { multiple: !0 } } }] : [],
       ...e === "score" && (!t.breakdown || t.breakdown.every((a) => typeof a == "string")) ? [{ name: "breakdown", selector: { entity: { multiple: !0 } } }] : [],
       s("sec_display", "mdi:palette-outline", [
         {
@@ -1690,6 +1702,18 @@ let K = class extends G {
                   select: {
                     mode: "dropdown",
                     options: r(["female", "male"], "gender")
+                  }
+                }
+              },
+              {
+                name: "figure_style",
+                selector: {
+                  select: {
+                    mode: "dropdown",
+                    options: r(
+                      ["svg", "flat", "glass", "mannequin", "pixar"],
+                      "fs"
+                    )
                   }
                 }
               },
@@ -1933,7 +1957,7 @@ let K = class extends G {
     s < 0 || s >= i.length || ([i[e], i[s]] = [i[s], i[e]], this._expanded === e && (this._expanded = s), this._emit({ ...this._config, metrics: i }));
   }
 };
-K.styles = et`
+q.styles = et`
     .metrics {
       display: flex;
       flex-direction: column;
@@ -2064,22 +2088,22 @@ K.styles = et`
   `;
 pe([
   Me({ attribute: !1 })
-], K.prototype, "hass", 2);
+], q.prototype, "hass", 2);
 pe([
   T()
-], K.prototype, "_config", 2);
+], q.prototype, "_config", 2);
 pe([
   T()
-], K.prototype, "_expanded", 2);
-K = pe([
+], q.prototype, "_expanded", 2);
+q = pe([
   at("health-card-editor")
-], K);
-var qt = Object.defineProperty, Yt = Object.getOwnPropertyDescriptor, P = (t, e, r, i) => {
+], q);
+var Kt = Object.defineProperty, Yt = Object.getOwnPropertyDescriptor, P = (t, e, r, i) => {
   for (var s = i > 1 ? void 0 : i ? Yt(e, r) : e, a = t.length - 1, o; a >= 0; a--)
     (o = t[a]) && (s = (i ? o(e, r, s) : o(s)) || s);
-  return i && s && qt(e, r, s), s;
+  return i && s && Kt(e, r, s), s;
 };
-const Zt = "0.8.1", Xt = 5 * 60 * 1e3, Jt = 15 * 60 * 1e3, Qt = ["default", "withings", "glass", "material", "bubble", "mirror"], ae = [
+const Zt = "0.9.0", Xt = 5 * 60 * 1e3, Jt = 15 * 60 * 1e3, Qt = ["default", "withings", "glass", "material", "bubble", "mirror"], ae = [
   { key: "day", kind: "hour", count: 24 },
   { key: "week", kind: "day", count: 7 },
   { key: "month", kind: "day", count: 30 },
@@ -2169,11 +2193,11 @@ let M = class extends G {
       return zt(this._history[t] ?? [], r, i);
     if (e === "month") {
       const o = (s = this._statsCache[`month|${r}`]) == null ? void 0 : s[t];
-      return o != null && o.length ? Ke(o, r, i, "month") : new Array(r).fill(NaN);
+      return o != null && o.length ? qe(o, r, i, "month") : new Array(r).fill(NaN);
     }
     if (r > 10) {
       const o = (a = this._statsCache[`day|${r}`]) == null ? void 0 : a[t];
-      if (o != null && o.length) return Ke(o, r, i, "day");
+      if (o != null && o.length) return qe(o, r, i, "day");
     }
     return Rt(this._history[t] ?? [], r, i);
   }
@@ -2295,12 +2319,12 @@ let M = class extends G {
     let c = this._series(t);
     !c.length && r === "sleep" && n.length && (c = [{ entity: n[0] }]);
     const d = (m = c[0]) != null && m.entity ? this.hass.states[c[0].entity] : void 0, l = (e == null ? void 0 : e.kind) ?? "day", h = Math.max(1, (e == null ? void 0 : e.count) ?? t.days ?? ((y = this._config) == null ? void 0 : y.days) ?? 7), g = t.graph ?? i.graph, b = t.aggregate ?? i.aggregate, _ = t.trend ?? i.trend, k = t.precision ?? i.precision, S = t.unit ?? ((A = c[0]) == null ? void 0 : A.unit) ?? (d == null ? void 0 : d.attributes.unit_of_measurement) ?? i.unit ?? "", f = c.map((N, U) => {
-      const q = this._bucketsFor(N.entity, l, h, b);
+      const K = this._bucketsFor(N.entity, l, h, b);
       return {
         ...N,
         colorResolved: C(N.color) ?? (U === 0 ? s : C(se[(U - 1) % se.length])),
-        buckets: q,
-        filled: qe(q)
+        buckets: K,
+        filled: Ke(K)
       };
     });
     let x;
@@ -2309,11 +2333,11 @@ let M = class extends G {
       if (N.length) {
         const U = N.map(
           (j) => this._bucketsFor(j, l, h, b)
-        ), q = Array.from({ length: h }, (j, ue) => {
+        ), K = Array.from({ length: h }, (j, ue) => {
           const Ne = U.map((me) => me[ue]).filter(Number.isFinite);
           return Ne.length ? Ne.reduce((me, dt) => me + dt, 0) : NaN;
         });
-        f[0] = { ...f[0], buckets: q, filled: qe(q) };
+        f[0] = { ...f[0], buckets: K, filled: Ke(K) };
         const Ce = N.map((j) => this._numeric(this.hass.states[j])).filter(Number.isFinite);
         Ce.length && (x = Ce.reduce((j, ue) => j + ue, 0));
       }
@@ -2583,9 +2607,23 @@ let M = class extends G {
       </div>
     `;
   }
-  /** User-supplied figure image for the current weight state, if configured. */
+  /** Figure image URL for the current weight state, if any is configured. */
   _bodyImage(t, e) {
-    return t.images ? (e < -0.12 ? t.images.slim : e < 0.35 ? t.images.regular : t.images.full) ?? t.images.regular ?? t.images.slim ?? t.images.full : void 0;
+    const r = e < -0.12 ? "slim" : e < 0.35 ? "regular" : "full";
+    if (t.figure_style && t.figure_style !== "svg") {
+      const s = t.gender ?? "female", a = r === "slim" ? "underweight" : r === "full" ? "overweight" : "normal";
+      return `${this._figureBase(t)}${t.figure_style}/${s}_${a}.png`;
+    }
+    return t.images ? (r === "slim" ? t.images.slim : r === "full" ? t.images.full : t.images.regular) ?? t.images.regular ?? t.images.slim ?? t.images.full : void 0;
+  }
+  /** Base URL for bundled figure images (served next to the card by default). */
+  _figureBase(t) {
+    if (t.figure_base) return t.figure_base.endsWith("/") ? t.figure_base : `${t.figure_base}/`;
+    try {
+      return new URL("figures/", import.meta.url).href;
+    } catch {
+      return "/figures/";
+    }
   }
   _renderAnchor(t, e) {
     const r = M.ANCHOR_POS[t.position ?? "chest"], i = this.hass.states[t.entity];
@@ -2630,7 +2668,7 @@ let M = class extends G {
   }
   /** Calendar heatmap: one cell per day, tinted by the score entity's value. */
   _renderScoreCalendar(t, e) {
-    const r = L(this.hass) === "de" ? "de-DE" : "en-US", i = /* @__PURE__ */ new Date();
+    const r = H(this.hass) === "de" ? "de-DE" : "en-US", i = /* @__PURE__ */ new Date();
     i.setHours(0, 0, 0, 0), i.setDate(i.getDate() - (e - 1));
     const s = (i.getDay() + 6) % 7, a = new Date(2024, 0, 1), o = Array.from(
       { length: 7 },
@@ -2670,7 +2708,7 @@ let M = class extends G {
   }
   /** Axis marks for the popup chart: gridlines and labels per range kind. */
   _xMarks(t, e) {
-    const r = L(this.hass) === "de" ? "de-DE" : "en-US", i = [];
+    const r = H(this.hass) === "de" ? "de-DE" : "en-US", i = [];
     if (t === "hour") {
       const n = /* @__PURE__ */ new Date();
       n.setMinutes(0, 0, 0);
@@ -2716,7 +2754,7 @@ let M = class extends G {
   _renderEventTimes(t) {
     const e = (this._history[t] ?? []).filter((o) => o.v > 0);
     if (!e.length) return p;
-    const r = L(this.hass) === "de" ? "de-DE" : "en-US", i = /* @__PURE__ */ new Date();
+    const r = H(this.hass) === "de" ? "de-DE" : "en-US", i = /* @__PURE__ */ new Date();
     i.setHours(0, 0, 0, 0);
     const s = i.getTime() - 6 * 864e5, a = Array.from({ length: 7 }, (o, n) => {
       const c = s + n * 864e5;

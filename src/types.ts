@@ -148,6 +148,13 @@ export interface MetricConfig {
   /** Body metrics: value labels pinned to body parts */
   anchors?: BodyAnchor[];
   /**
+   * Body metrics: use a bundled rendered figure set instead of the SVG.
+   * 'svg' (default) draws the built-in silhouette.
+   */
+  figure_style?: 'svg' | 'flat' | 'glass' | 'mannequin' | 'pixar';
+  /** Override where the bundled figure images are served from (trailing /) */
+  figure_base?: string;
+  /**
    * Body metrics: use your own rendered figures instead of the built-in SVG.
    * The card picks slim/regular/full by weight vs goal; energy glow, fever
    * overlay and anchors keep working on top of the image.
