@@ -376,11 +376,26 @@ document.getElementById('style').addEventListener('click', () => {
         : '';
 });
 
+const bodyImgMetric = () => current.metrics.find((m) => m.name === 'Körper (Bilder)');
 const FIGURES = ['glass', 'pixar', 'mannequin', 'flat', 'svg'];
 document.getElementById('figure').addEventListener('click', () => {
-  const cur = current.metrics.find((m) => m.name === 'Körper (Bilder)').figure_style;
+  const cur = bodyImgMetric().figure_style;
   const next = FIGURES[(FIGURES.indexOf(cur) + 1) % FIGURES.length];
-  current.metrics.find((m) => m.name === 'Körper (Bilder)').figure_style = next;
+  bodyImgMetric().figure_style = next;
   card.setConfig({ ...current });
   document.getElementById('figure').textContent = `Figur: ${next}`;
+});
+document.getElementById('crop').addEventListener('click', () => {
+  const next = bodyImgMetric().body_crop === 'upper' ? 'full' : 'upper';
+  bodyImgMetric().body_crop = next;
+  card.setConfig({ ...current });
+  document.getElementById('crop').textContent = `Crop: ${next}`;
+});
+const ZOOMS = [1, 1.4, 1.8];
+document.getElementById('zoom').addEventListener('click', () => {
+  const cur = bodyImgMetric().figure_zoom ?? 1;
+  const next = ZOOMS[(ZOOMS.indexOf(cur) + 1) % ZOOMS.length];
+  bodyImgMetric().figure_zoom = next;
+  card.setConfig({ ...current });
+  document.getElementById('zoom').textContent = `Zoom: ${next}`;
 });

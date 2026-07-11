@@ -71,6 +71,8 @@ export interface BodyAnchor {
   /** free placement (percent of the figure area), overrides position */
   x?: number;
   y?: number;
+  /** put the label on the opposite side of the dot */
+  flip?: boolean;
 }
 
 export interface SeriesConfig {
@@ -139,12 +141,18 @@ export interface MetricConfig {
   breakdown?: (string | SeriesConfig)[];
   /** Body metrics: silhouette build (default female) */
   gender?: 'female' | 'male';
-  /** Body metrics: sleep score entity — low values draw eye shadows */
+  /** Body metrics: sleep score entity (0-100) — low values draw eye shadows */
   sleep_entity?: string;
+  /** Body metrics: sleep score below which eye shadows appear (default 60) */
+  tired_below?: number;
   /** Body metrics: body temperature entity — fever tints head and chest */
   temperature_entity?: string;
   /** Body metrics: temperature that counts as fever (default 37.8) */
   fever_from?: number;
+  /** Body metrics: show the whole figure or only head + torso */
+  body_crop?: 'full' | 'upper';
+  /** Body metrics: zoom factor for the figure (default 1) */
+  figure_zoom?: number;
   /** Body metrics: value labels pinned to body parts */
   anchors?: BodyAnchor[];
   /**

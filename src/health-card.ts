@@ -33,7 +33,7 @@ import { barChart, lineChart, scoreGraphic } from './charts';
 import type { AxisMark, ChartOpts } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.9.0';
+const CARD_VERSION = '0.10.0';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
@@ -733,9 +733,11 @@ export class HealthCard extends LitElement {
       shape = Math.max(-0.35, Math.min((v / goal - 1) * 2.5, 1.1));
     }
     const sleepV = m.sleep_entity ? this._numeric(this.hass.states[m.sleep_entity]) : NaN;
-    const tired = Number.isFinite(sleepV)
-      ? Math.max(0, Math.min((60 - sleepV) / 45, 1))
-      : 0;
+    const tiredBelow = m.tired_below ?? 60;
+    const tired =
+      Number.isFinite(sleepV) && sleepV < tiredBelow
+        ? Math.min((tiredBelow - sleepV) / 45 + 0.15, 1)
+        : 0;
     const tempV = m.temperature_entity
       ? this._numeric(this.hass.states[m.temperature_entity])
       : NaN;
@@ -777,43 +779,48 @@ export class HealthCard extends LitElement {
           </div>
         </div>
         <div class="bodywrap">
-          ${this._bodyImage(m, shape)
-            ? html`
-                ${glow > 0
-                  ? html`<div
-                      class="body-glow"
-                      style="--hc-glow:${glowColor};opacity:${glow}"
-                    ></div>`
-                  : nothing}
-                ${m.image_remove_black
-                  ? html`<svg class="unblack-defs" aria-hidden="true">
-                      <filter id="hc-unblack">
-                        <feColorMatrix
-                          type="matrix"
-                          values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  1.2 1.8 0.7 0 -0.18"
-                        />
-                      </filter>
-                    </svg>`
-                  : nothing}
-                <img
-                  class="bodyimg"
-                  src=${this._bodyImage(m, shape)!}
-                  style=${m.image_remove_black ? 'filter: url(#hc-unblack)' : ''}
-                  alt=""
-                />
-                ${fever > 0
-                  ? html`<div class="body-fever" style="opacity:${fever}"></div>`
-                  : nothing}
-              `
-            : bodyFigure({
-                gender: m.gender ?? 'female',
-                shape,
-                tired,
-                fever,
-                glow,
-                glowColor,
-                cuff,
-              })}
+          ${glow > 0 && this._bodyImage(m, shape)
+            ? html`<div
+                class="body-glow"
+                style="--hc-glow:${glowColor};opacity:${glow}"
+              ></div>`
+            : nothing}
+          <div
+            class="bodyframe ${m.body_crop === 'upper' ? 'crop-upper' : ''}"
+            style="--hc-frame-ar:${this._frameAspect(m)};--hc-zoom:${m.figure_zoom ?? 1}"
+          >
+            ${this._bodyImage(m, shape)
+              ? html`
+                  ${m.image_remove_black
+                    ? html`<svg class="unblack-defs" aria-hidden="true">
+                        <filter id="hc-unblack">
+                          <feColorMatrix
+                            type="matrix"
+                            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  1.2 1.8 0.7 0 -0.18"
+                          />
+                        </filter>
+                      </svg>`
+                    : nothing}
+                  <img
+                    class="bodyimg"
+                    src=${this._bodyImage(m, shape)!}
+                    style=${m.image_remove_black ? 'filter: url(#hc-unblack)' : ''}
+                    alt=""
+                  />
+                  ${fever > 0
+                    ? html`<div class="body-fever" style="opacity:${fever}"></div>`
+                    : nothing}
+                `
+              : bodyFigure({
+                  gender: m.gender ?? 'female',
+                  shape,
+                  tired,
+                  fever,
+                  glow,
+                  glowColor,
+                  cuff,
+                })}
+          </div>
           ${anchors.map((a, i) => this._renderAnchor(a, i))}
         </div>
         <div class="body-foot">
@@ -848,6 +855,15 @@ export class HealthCard extends LitElement {
     return preferred ?? m.images.regular ?? m.images.slim ?? m.images.full;
   }
 
+  /**
+   * Frame aspect ratio (width/height) for the upper-body crop — wider than the
+   * portrait figure so only head + torso stay visible. Full crop ignores this
+   * (natural flow), so a single value works for images and the drawn SVG.
+   */
+  private _frameAspect(m: MetricConfig): number {
+    return m.body_crop === 'upper' ? 1.25 : 1;
+  }
+
   /** Base URL for bundled figure images (served next to the card by default). */
   private _figureBase(m: MetricConfig): string {
     if (m.figure_base) return m.figure_base.endsWith('/') ? m.figure_base : `${m.figure_base}/`;
@@ -863,11 +879,10 @@ export class HealthCard extends LitElement {
     const st = this.hass.states[a.entity];
     if (!base || !st) return nothing;
     // free x/y placement (percent) overrides the named position
-    const pos = {
-      x: a.x ?? base.x,
-      y: a.y ?? base.y,
-      side: a.x !== undefined && !a.position ? (a.x >= 50 ? 'right' : 'left') : base.side,
-    };
+    let side: 'left' | 'right' =
+      a.x !== undefined && !a.position ? (a.x >= 50 ? 'right' : 'left') : base.side;
+    if (a.flip) side = side === 'right' ? 'left' : 'right';
+    const pos = { x: a.x ?? base.x, y: a.y ?? base.y, side };
     const color =
       resolveColor(a.color) ?? resolveColor(SERIES_PALETTE[i % SERIES_PALETTE.length])!;
     const v = this._numeric(st);
@@ -2195,16 +2210,31 @@ export class HealthCard extends LitElement {
       width: min(240px, 92%);
       margin: 0 auto;
     }
-    .bodyfig {
+    /* the frame clips the figure for crop/zoom; anchors live outside it so
+       their chips can overflow without being cut off. full crop = natural
+       flow (no assumption about the image aspect ratio); upper crop clips to
+       a wide band showing head + torso. */
+    .bodyframe {
+      position: relative;
       width: 100%;
-      height: auto;
-      display: block;
+      overflow: hidden;
     }
+    .bodyfig,
     .bodyimg {
       width: 100%;
       height: auto;
       display: block;
-      position: relative;
+      transform: scale(var(--hc-zoom, 1));
+      transform-origin: 50% 7%;
+    }
+    .bodyframe.crop-upper {
+      aspect-ratio: var(--hc-frame-ar, 1.2);
+    }
+    .bodyframe.crop-upper .bodyfig,
+    .bodyframe.crop-upper .bodyimg {
+      position: absolute;
+      top: 0;
+      left: 0;
     }
     .unblack-defs {
       position: absolute;
@@ -2213,7 +2243,7 @@ export class HealthCard extends LitElement {
     }
     .body-glow {
       position: absolute;
-      inset: -4%;
+      inset: -8%;
       border-radius: 50%;
       background: radial-gradient(
         closest-side,

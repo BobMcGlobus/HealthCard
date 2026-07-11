@@ -74,6 +74,12 @@ const LABELS: Record<string, Record<string, string>> = {
     fs_glass: 'Liquid Glass',
     fs_mannequin: 'Mannequin',
     fs_pixar: 'Soft 3D',
+    body_crop: 'Crop',
+    bc_full: 'Full body',
+    bc_upper: 'Upper body',
+    figure_zoom: 'Zoom',
+    tired_below: 'Eye shadows below score',
+    flip: 'Label on other side',
     type: 'Type',
     entity: 'Entity',
     entity2: 'Second entity (e.g. diastolic)',
@@ -163,6 +169,12 @@ const LABELS: Record<string, Record<string, string>> = {
     fs_glass: 'Liquid Glass',
     fs_mannequin: 'Schaufensterpuppe',
     fs_pixar: 'Weiches 3D',
+    body_crop: 'Ausschnitt',
+    bc_full: 'Ganzer Körper',
+    bc_upper: 'Oberkörper',
+    figure_zoom: 'Zoom',
+    tired_below: 'Augenringe unter Score',
+    flip: 'Label auf andere Seite',
     type: 'Typ',
     entity: 'Entität',
     entity2: 'Zweite Entität (z. B. diastolisch)',
@@ -439,11 +451,36 @@ export class HealthCardEditor extends LitElement {
                     },
                   },
                   {
+                    name: 'body_crop',
+                    selector: {
+                      select: {
+                        mode: 'dropdown',
+                        options: opts(['full', 'upper'], 'bc'),
+                      },
+                    },
+                  },
+                  {
+                    name: 'figure_zoom',
+                    selector: {
+                      number: { min: 0.5, max: 3, step: 0.1, mode: 'slider' },
+                    },
+                  },
+                ],
+              },
+              {
+                type: 'grid',
+                name: '',
+                schema: [
+                  { name: 'sleep_entity', selector: { entity: {} } },
+                  { name: 'temperature_entity', selector: { entity: {} } },
+                  {
+                    name: 'tired_below',
+                    selector: { number: { min: 0, max: 100, mode: 'box' } },
+                  },
+                  {
                     name: 'fever_from',
                     selector: { number: { mode: 'box', step: 'any' } },
                   },
-                  { name: 'sleep_entity', selector: { entity: {} } },
-                  { name: 'temperature_entity', selector: { entity: {} } },
                 ],
               },
             ]),
@@ -587,6 +624,7 @@ export class HealthCardEditor extends LitElement {
         ],
       },
       { name: 'entity2', selector: { entity: {} } },
+      { name: 'flip', selector: { boolean: {} } },
     ];
   }
 
@@ -634,6 +672,7 @@ export class HealthCardEditor extends LitElement {
     if (v.color) anchor.color = v.color;
     if (v.anchor_x !== undefined && v.anchor_x !== null) anchor.x = v.anchor_x;
     if (v.anchor_y !== undefined && v.anchor_y !== null) anchor.y = v.anchor_y;
+    if (v.flip) anchor.flip = true;
     const metrics = [...this._config.metrics];
     const anchors = [...(metrics[mi].anchors ?? [])];
     anchors[ai] = anchor as unknown as BodyAnchor;

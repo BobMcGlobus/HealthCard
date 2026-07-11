@@ -284,22 +284,22 @@ I.elementStyles = [], I.shadowRootOptions = { mode: "open" }, I[J("elementProper
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const Q = globalThis, Re = (t) => t, le = Q.trustedTypes, Oe = le ? le.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, tt = "$lit$", F = `lit$${Math.random().toFixed(9).slice(2)}$`, rt = "?" + F, xt = `<${rt}>`, B = document, ee = () => B.createComment(""), te = (t) => t === null || typeof t != "object" && typeof t != "function", Ae = Array.isArray, vt = (t) => Ae(t) || typeof (t == null ? void 0 : t[Symbol.iterator]) == "function", fe = `[ 	
-\f\r]`, Y = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, ze = /-->/g, Le = />/g, R = RegExp(`>|${fe}(?:([^\\s"'>=/]+)(${fe}*=${fe}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`, "g"), He = /'/g, Be = /"/g, it = /^(?:script|style|textarea|title)$/i, st = (t) => (e, ...r) => ({ _$litType$: t, strings: e, values: r }), u = st(1), v = st(2), W = Symbol.for("lit-noChange"), p = Symbol.for("lit-nothing"), Ue = /* @__PURE__ */ new WeakMap(), O = B.createTreeWalker(B, 129);
+const Q = globalThis, Re = (t) => t, le = Q.trustedTypes, ze = le ? le.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, tt = "$lit$", F = `lit$${Math.random().toFixed(9).slice(2)}$`, rt = "?" + F, xt = `<${rt}>`, B = document, ee = () => B.createComment(""), te = (t) => t === null || typeof t != "object" && typeof t != "function", Ae = Array.isArray, vt = (t) => Ae(t) || typeof (t == null ? void 0 : t[Symbol.iterator]) == "function", fe = `[ 	
+\f\r]`, Z = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Oe = /-->/g, Le = />/g, R = RegExp(`>|${fe}(?:([^\\s"'>=/]+)(${fe}*=${fe}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`, "g"), He = /'/g, Be = /"/g, it = /^(?:script|style|textarea|title)$/i, st = (t) => (e, ...r) => ({ _$litType$: t, strings: e, values: r }), u = st(1), v = st(2), W = Symbol.for("lit-noChange"), p = Symbol.for("lit-nothing"), Ue = /* @__PURE__ */ new WeakMap(), z = B.createTreeWalker(B, 129);
 function ot(t, e) {
   if (!Ae(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
-  return Oe !== void 0 ? Oe.createHTML(e) : e;
+  return ze !== void 0 ? ze.createHTML(e) : e;
 }
 const $t = (t, e) => {
   const r = t.length - 1, i = [];
-  let s, a = e === 2 ? "<svg>" : e === 3 ? "<math>" : "", o = Y;
+  let s, a = e === 2 ? "<svg>" : e === 3 ? "<math>" : "", o = Z;
   for (let n = 0; n < r; n++) {
     const c = t[n];
     let d, l, h = -1, g = 0;
-    for (; g < c.length && (o.lastIndex = g, l = o.exec(c), l !== null); ) g = o.lastIndex, o === Y ? l[1] === "!--" ? o = ze : l[1] !== void 0 ? o = Le : l[2] !== void 0 ? (it.test(l[2]) && (s = RegExp("</" + l[2], "g")), o = R) : l[3] !== void 0 && (o = R) : o === R ? l[0] === ">" ? (o = s ?? Y, h = -1) : l[1] === void 0 ? h = -2 : (h = o.lastIndex - l[2].length, d = l[1], o = l[3] === void 0 ? R : l[3] === '"' ? Be : He) : o === Be || o === He ? o = R : o === ze || o === Le ? o = Y : (o = R, s = void 0);
-    const b = o === R && t[n + 1].startsWith("/>") ? " " : "";
-    a += o === Y ? c + xt : h >= 0 ? (i.push(d), c.slice(0, h) + tt + c.slice(h) + F + b) : c + F + (h === -2 ? n : b);
+    for (; g < c.length && (o.lastIndex = g, l = o.exec(c), l !== null); ) g = o.lastIndex, o === Z ? l[1] === "!--" ? o = Oe : l[1] !== void 0 ? o = Le : l[2] !== void 0 ? (it.test(l[2]) && (s = RegExp("</" + l[2], "g")), o = R) : l[3] !== void 0 && (o = R) : o === R ? l[0] === ">" ? (o = s ?? Z, h = -1) : l[1] === void 0 ? h = -2 : (h = o.lastIndex - l[2].length, d = l[1], o = l[3] === void 0 ? R : l[3] === '"' ? Be : He) : o === Be || o === He ? o = R : o === Oe || o === Le ? o = Z : (o = R, s = void 0);
+    const f = o === R && t[n + 1].startsWith("/>") ? " " : "";
+    a += o === Z ? c + xt : h >= 0 ? (i.push(d), c.slice(0, h) + tt + c.slice(h) + F + f) : c + F + (h === -2 ? n : f);
   }
   return [ot(t, a + (t[r] || "<?>") + (e === 2 ? "</svg>" : e === 3 ? "</math>" : "")), i];
 };
@@ -309,21 +309,21 @@ class re {
     this.parts = [];
     let a = 0, o = 0;
     const n = e.length - 1, c = this.parts, [d, l] = $t(e, r);
-    if (this.el = re.createElement(d, i), O.currentNode = this.el.content, r === 2 || r === 3) {
+    if (this.el = re.createElement(d, i), z.currentNode = this.el.content, r === 2 || r === 3) {
       const h = this.el.content.firstChild;
       h.replaceWith(...h.childNodes);
     }
-    for (; (s = O.nextNode()) !== null && c.length < n; ) {
+    for (; (s = z.nextNode()) !== null && c.length < n; ) {
       if (s.nodeType === 1) {
         if (s.hasAttributes()) for (const h of s.getAttributeNames()) if (h.endsWith(tt)) {
-          const g = l[o++], b = s.getAttribute(h).split(F), _ = /([.?@])?(.*)/.exec(g);
-          c.push({ type: 1, index: a, name: _[2], strings: b, ctor: _[1] === "." ? kt : _[1] === "?" ? St : _[1] === "@" ? At : he }), s.removeAttribute(h);
+          const g = l[o++], f = s.getAttribute(h).split(F), x = /([.?@])?(.*)/.exec(g);
+          c.push({ type: 1, index: a, name: x[2], strings: f, ctor: x[1] === "." ? kt : x[1] === "?" ? St : x[1] === "@" ? At : he }), s.removeAttribute(h);
         } else h.startsWith(F) && (c.push({ type: 6, index: a }), s.removeAttribute(h));
         if (it.test(s.tagName)) {
           const h = s.textContent.split(F), g = h.length - 1;
           if (g > 0) {
             s.textContent = le ? le.emptyScript : "";
-            for (let b = 0; b < g; b++) s.append(h[b], ee()), O.nextNode(), c.push({ type: 2, index: ++a });
+            for (let f = 0; f < g; f++) s.append(h[f], ee()), z.nextNode(), c.push({ type: 2, index: ++a });
             s.append(h[g], ee());
           }
         }
@@ -359,16 +359,16 @@ class wt {
   }
   u(e) {
     const { el: { content: r }, parts: i } = this._$AD, s = ((e == null ? void 0 : e.creationScope) ?? B).importNode(r, !0);
-    O.currentNode = s;
-    let a = O.nextNode(), o = 0, n = 0, c = i[0];
+    z.currentNode = s;
+    let a = z.nextNode(), o = 0, n = 0, c = i[0];
     for (; c !== void 0; ) {
       if (o === c.index) {
         let d;
         c.type === 2 ? d = new ie(a, a.nextSibling, this, e) : c.type === 1 ? d = new c.ctor(a, c.name, c.strings, this, e) : c.type === 6 && (d = new Mt(a, this, e)), this._$AV.push(d), c = i[++n];
       }
-      o !== (c == null ? void 0 : c.index) && (a = O.nextNode(), o++);
+      o !== (c == null ? void 0 : c.index) && (a = z.nextNode(), o++);
     }
-    return O.currentNode = B, s;
+    return z.currentNode = B, s;
   }
   p(e) {
     let r = 0;
@@ -626,7 +626,7 @@ function C(t) {
   if (t)
     return t === "primary" ? "var(--primary-color)" : t === "accent" ? "var(--accent-color)" : $e[t] ? `var(--${t}-color, ${$e[t]})` : t;
 }
-const z = {
+const O = {
   weight: {
     icon: "mdi:scale-bathroom",
     color: "indigo",
@@ -841,14 +841,14 @@ function Tt(t) {
     [89, 43],
     [83.5, 29],
     [88, 14]
-  ], o = (b) => [200 - b[0], b[1]], n = Dt(a.map(o)), c = 12 + e * 3, l = [
+  ], o = (f) => [200 - f[0], f[1]], n = Dt(a.map(o)), c = 12 + e * 3, l = [
     [100 + s - 6, 80],
     // shoulder
     [100 + s + 20, 92],
     // elbow, out to the side
     [100 + s + 13, 50]
     // raised fist
-  ].map(o).map((b, _) => `${_ ? "L" : "M"} ${b[0].toFixed(1)} ${b[1].toFixed(1)}`).join(" "), h = 100 + (s + 7);
+  ].map(o).map((f, x) => `${x ? "L" : "M"} ${f[0].toFixed(1)} ${f[1].toFixed(1)}`).join(" "), h = 100 + (s + 7);
   return u`<svg class="bodyfig" viewBox="0 0 200 330" aria-hidden="true">
     <defs>
       <linearGradient id="hc-body-fill" x1="0" y1="0" x2="0" y2="1">
@@ -991,7 +991,7 @@ function H(t) {
 function $(t, e) {
   return We[H(t)][e] ?? We.en[e] ?? e;
 }
-function w(t, e, r) {
+function k(t, e, r) {
   if (!Number.isFinite(e)) return "–";
   const i = H(t) === "de" ? "de-DE" : "en-US";
   return r === void 0 ? new Intl.NumberFormat(i, { maximumFractionDigits: 2 }).format(e) : new Intl.NumberFormat(i, {
@@ -999,7 +999,7 @@ function w(t, e, r) {
     maximumFractionDigits: r
   }).format(e);
 }
-function Z(t, e) {
+function Y(t, e) {
   return e ? /^[%°'"]/.test(e) ? `${t}${e}` : `${t} ${e}` : t;
 }
 function oe(t, e) {
@@ -1059,7 +1059,7 @@ function Rt(t, e, r) {
     }
   });
 }
-async function Ot(t, e, r, i = "day") {
+async function zt(t, e, r, i = "day") {
   if (!e.length) return {};
   const s = /* @__PURE__ */ new Date();
   s.setHours(0, 0, 0, 0), i === "month" ? (s.setDate(1), s.setMonth(s.getMonth() - (r - 1))) : s.setDate(s.getDate() - (r - 1));
@@ -1108,7 +1108,7 @@ function qe(t, e, r, i = "day") {
   }
   return s;
 }
-function zt(t, e, r) {
+function Ot(t, e, r) {
   const i = /* @__PURE__ */ new Date();
   i.setMinutes(0, 0, 0);
   const s = i.getTime() - (e - 1) * 36e5, a = Array.from({ length: e }, () => []);
@@ -1156,64 +1156,64 @@ function Lt(t) {
   const e = t.filter(Number.isFinite), r = Math.min(...e), i = Math.max(...e), s = i - r || Math.abs(i) * 0.1 || 1;
   return { lo: r - s * 0.18, hi: i + s * 0.18 };
 }
-function Ye(t, e = {}) {
-  const r = e.w ?? nt, i = e.h ?? ct, s = e.dots ?? !0, a = t.filter((f) => f.values.some(Number.isFinite));
+function Ze(t, e = {}) {
+  const r = e.w ?? nt, i = e.h ?? ct, s = e.dots ?? !0, a = t.filter((b) => b.values.some(Number.isFinite));
   if (!a.length) return p;
-  const { lo: o, hi: n } = Lt(a.flatMap((f) => f.values)), c = Math.max(...a.map((f) => f.values.length)), d = e.yFmt ? [n - (n - o) * 0.08, (o + n) / 2, o + (n - o) * 0.08] : [], { padL: l, padB: h } = lt(e, d), g = (f) => l + f * (r - l - E) / Math.max(c - 1, 1), b = (f) => i - h - (f - o) / (n - o) * (i - h - E), _ = d.map(
-    (f) => v`
-      <line x1=${l} x2=${r - E} y1=${b(f)} y2=${b(f)}
+  const { lo: o, hi: n } = Lt(a.flatMap((b) => b.values)), c = Math.max(...a.map((b) => b.values.length)), d = e.yFmt ? [n - (n - o) * 0.08, (o + n) / 2, o + (n - o) * 0.08] : [], { padL: l, padB: h } = lt(e, d), g = (b) => l + b * (r - l - E) / Math.max(c - 1, 1), f = (b) => i - h - (b - o) / (n - o) * (i - h - E), x = d.map(
+    (b) => v`
+      <line x1=${l} x2=${r - E} y1=${f(b)} y2=${f(b)}
         stroke=${de} stroke-width="1" stroke-dasharray="2 3"/>
-      <text class="axis" x=${l - 5} y=${b(f)} text-anchor="end"
-        dominant-baseline="middle">${e.yFmt(f)}</text>`
-  ), k = (e.xMarks ?? []).map(
-    (f) => v`
-      ${f.line ? v`<line x1=${g(f.i)} x2=${g(f.i)} y1=${E} y2=${i - h}
+      <text class="axis" x=${l - 5} y=${f(b)} text-anchor="end"
+        dominant-baseline="middle">${e.yFmt(b)}</text>`
+  ), S = (e.xMarks ?? []).map(
+    (b) => v`
+      ${b.line ? v`<line x1=${g(b.i)} x2=${g(b.i)} y1=${E} y2=${i - h}
               stroke=${de} stroke-width="1"/>` : p}
-      ${f.label ? v`<text class="axis" x=${g(f.i)} y=${i - 3} text-anchor="middle">${f.label}</text>` : p}`
-  ), S = a.map((f) => {
-    const x = f.values.map((y, A) => ({ x: g(A), y: b(y), ok: Number.isFinite(y) })).filter((y) => y.ok);
-    if (!x.length) return p;
-    let m = `M ${x[0].x} ${x[0].y}`;
-    for (let y = 1; y < x.length; y++) {
-      const A = (x[y - 1].x + x[y].x) / 2;
-      m += ` C ${A} ${x[y - 1].y}, ${A} ${x[y].y}, ${x[y].x} ${x[y].y}`;
+      ${b.label ? v`<text class="axis" x=${g(b.i)} y=${i - 3} text-anchor="middle">${b.label}</text>` : p}`
+  ), A = a.map((b) => {
+    const _ = b.values.map((y, w) => ({ x: g(w), y: f(y), ok: Number.isFinite(y) })).filter((y) => y.ok);
+    if (!_.length) return p;
+    let m = `M ${_[0].x} ${_[0].y}`;
+    for (let y = 1; y < _.length; y++) {
+      const w = (_[y - 1].x + _[y].x) / 2;
+      m += ` C ${w} ${_[y - 1].y}, ${w} ${_[y].y}, ${_[y].x} ${_[y].y}`;
     }
     return v`
-      <path d=${m} fill="none" stroke=${f.color} stroke-width="2.2"
+      <path d=${m} fill="none" stroke=${b.color} stroke-width="2.2"
         stroke-linecap="round" stroke-linejoin="round"/>
-      ${s ? x.map(
+      ${s ? _.map(
       (y) => v`<circle cx=${y.x} cy=${y.y} r="3.1" fill="var(--hc-dot-fill)"
-                stroke=${f.color} stroke-width="2"/>`
+                stroke=${b.color} stroke-width="2"/>`
     ) : p}
     `;
   });
   return u`<svg class="chart" viewBox="0 0 ${r} ${i}" aria-hidden="true">
-    ${_}${k}${S}
+    ${x}${S}${A}
   </svg>`;
 }
-function Ze(t, e, r, i = {}) {
+function Ye(t, e, r, i = {}) {
   const s = i.w ?? nt, a = i.h ?? ct;
   if (!t.some((m) => Number.isFinite(m) && m > 0)) return p;
-  const o = t.map((m) => Number.isFinite(m) && m > 0 ? m : 0), n = Math.max(...o, r ?? 0) || 1, c = o.length, d = i.yFmt ? [n, n / 2] : [], { padL: l, padB: h } = lt(i, d), g = (s - l - E) / c, b = Math.min(g * 0.55, 14), _ = (m) => m / n * (a - h - E), k = d.map(
+  const o = t.map((m) => Number.isFinite(m) && m > 0 ? m : 0), n = Math.max(...o, r ?? 0) || 1, c = o.length, d = i.yFmt ? [n, n / 2] : [], { padL: l, padB: h } = lt(i, d), g = (s - l - E) / c, f = Math.min(g * 0.55, 14), x = (m) => m / n * (a - h - E), S = d.map(
     (m) => v`
-      <line x1=${l} x2=${s - E} y1=${a - h - _(m)} y2=${a - h - _(m)}
+      <line x1=${l} x2=${s - E} y1=${a - h - x(m)} y2=${a - h - x(m)}
         stroke=${de} stroke-width="1" stroke-dasharray="2 3"/>
-      <text class="axis" x=${l - 5} y=${a - h - _(m)} text-anchor="end"
+      <text class="axis" x=${l - 5} y=${a - h - x(m)} text-anchor="end"
         dominant-baseline="middle">${i.yFmt(m)}</text>`
-  ), S = (i.xMarks ?? []).map((m) => {
+  ), A = (i.xMarks ?? []).map((m) => {
     const y = l + m.i * g + g / 2;
     return v`
       ${m.line ? v`<line x1=${y} x2=${y} y1=${E} y2=${a - h}
               stroke=${de} stroke-width="1"/>` : p}
       ${m.label ? v`<text class="axis" x=${y} y=${a - 3} text-anchor="middle">${m.label}</text>` : p}`;
-  }), f = o.map((m, y) => {
-    const A = Math.max(_(m), m > 0 ? 3 : 1.5), N = l + y * g + (g - b) / 2;
-    return v`<rect x=${N} y=${a - h - A} width=${b} height=${A}
-      rx=${Math.min(b / 2, 4)} fill=${e} opacity=${m > 0 ? 1 : 0.25}/>`;
-  }), x = Number.isFinite(r) ? v`<line x1=${l} x2=${s - E} y1=${a - h - _(r)} y2=${a - h - _(r)}
+  }), b = o.map((m, y) => {
+    const w = Math.max(x(m), m > 0 ? 3 : 1.5), N = l + y * g + (g - f) / 2;
+    return v`<rect x=${N} y=${a - h - w} width=${f} height=${w}
+      rx=${Math.min(f / 2, 4)} fill=${e} opacity=${m > 0 ? 1 : 0.25}/>`;
+  }), _ = Number.isFinite(r) ? v`<line x1=${l} x2=${s - E} y1=${a - h - x(r)} y2=${a - h - x(r)}
         stroke=${e} stroke-width="1" stroke-dasharray="3 3" opacity="0.5"/>` : p;
   return u`<svg class="chart" viewBox="0 0 ${s} ${a}" aria-hidden="true">
-    ${k}${S}${x}${f}
+    ${S}${A}${_}${b}
   </svg>`;
 }
 const Xe = [
@@ -1234,10 +1234,10 @@ function Bt(t, e, r) {
   for (let o = 0; o < 2; o++) {
     const n = o === 0 ? 74 : 88, c = o === 0 ? 26 : 32;
     for (let d = 0; d < c; d++) {
-      const l = d / c, h = l * Math.PI * 2 - Math.PI / 2 + i(d + o * 100) * 0.12, g = n + (i(d * 3 + o * 7) - 0.5) * 6, b = 2.4 + i(d * 7 + o * 13) * 2.4, _ = l < e ? s(d * 11 + o * 29) : Ht;
+      const l = d / c, h = l * Math.PI * 2 - Math.PI / 2 + i(d + o * 100) * 0.12, g = n + (i(d * 3 + o * 7) - 0.5) * 6, f = 2.4 + i(d * 7 + o * 13) * 2.4, x = l < e ? s(d * 11 + o * 29) : Ht;
       a.push(
         v`<circle cx=${100 + Math.cos(h) * g} cy=${100 + Math.sin(h) * g}
-          r=${b} fill=${_} opacity="0.75"/>`
+          r=${f} fill=${x} opacity="0.75"/>`
       );
     }
   }
@@ -1279,8 +1279,8 @@ function Ut(t, e, r) {
       class=${l ? "glowpulse" : ""}/>
     ${// sub-goals melt into a heavily blurred color wash behind the number
   r != null && r.length ? r.map((h, g) => {
-    const b = g / r.length * 2 * Math.PI - Math.PI / 2;
-    return v`<circle cx=${100 + Math.cos(b) * 24} cy=${100 + Math.sin(b) * 24}
+    const f = g / r.length * 2 * Math.PI - Math.PI / 2;
+    return v`<circle cx=${100 + Math.cos(f) * 24} cy=${100 + Math.sin(f) * 24}
               r=${16 + h.share * 26} fill=${h.color}
               filter="url(#hc-blur-heavy)" opacity="0.5"/>`;
   }) : p}
@@ -1321,7 +1321,7 @@ var Gt = Object.defineProperty, Wt = Object.getOwnPropertyDescriptor, pe = (t, e
     (o = t[a]) && (s = (i ? o(e, r, s) : o(s)) || s);
   return i && s && Gt(e, r, s), s;
 };
-const Vt = Object.keys(z), qt = ["body_composition", "nutrition"], ve = {
+const Vt = Object.keys(O), qt = ["body_composition", "nutrition"], ve = {
   en: {
     title: "Title",
     subtitle: "Subtitle",
@@ -1381,6 +1381,12 @@ const Vt = Object.keys(z), qt = ["body_composition", "nutrition"], ve = {
     fs_glass: "Liquid Glass",
     fs_mannequin: "Mannequin",
     fs_pixar: "Soft 3D",
+    body_crop: "Crop",
+    bc_full: "Full body",
+    bc_upper: "Upper body",
+    figure_zoom: "Zoom",
+    tired_below: "Eye shadows below score",
+    flip: "Label on other side",
     type: "Type",
     entity: "Entity",
     entity2: "Second entity (e.g. diastolic)",
@@ -1470,6 +1476,12 @@ const Vt = Object.keys(z), qt = ["body_composition", "nutrition"], ve = {
     fs_glass: "Liquid Glass",
     fs_mannequin: "Schaufensterpuppe",
     fs_pixar: "Weiches 3D",
+    body_crop: "Ausschnitt",
+    bc_full: "Ganzer Körper",
+    bc_upper: "Oberkörper",
+    figure_zoom: "Zoom",
+    tired_below: "Augenringe unter Score",
+    flip: "Label auf andere Seite",
     type: "Typ",
     entity: "Entität",
     entity2: "Zweite Entität (z. B. diastolisch)",
@@ -1718,11 +1730,36 @@ let q = class extends G {
                 }
               },
               {
+                name: "body_crop",
+                selector: {
+                  select: {
+                    mode: "dropdown",
+                    options: r(["full", "upper"], "bc")
+                  }
+                }
+              },
+              {
+                name: "figure_zoom",
+                selector: {
+                  number: { min: 0.5, max: 3, step: 0.1, mode: "slider" }
+                }
+              }
+            ]
+          },
+          {
+            type: "grid",
+            name: "",
+            schema: [
+              { name: "sleep_entity", selector: { entity: {} } },
+              { name: "temperature_entity", selector: { entity: {} } },
+              {
+                name: "tired_below",
+                selector: { number: { min: 0, max: 100, mode: "box" } }
+              },
+              {
                 name: "fever_from",
                 selector: { number: { mode: "box", step: "any" } }
-              },
-              { name: "sleep_entity", selector: { entity: {} } },
-              { name: "temperature_entity", selector: { entity: {} } }
+              }
             ]
           }
         ])
@@ -1771,7 +1808,7 @@ let q = class extends G {
   }
   _renderMetricEditor(t, e) {
     var o, n, c, d;
-    const r = t.type ?? "custom", i = z[r] ?? z.custom, s = this._expanded === e, a = this._config.metrics.length;
+    const r = t.type ?? "custom", i = O[r] ?? O.custom, s = this._expanded === e, a = this._config.metrics.length;
     return u`
       <div class="metric ${s ? "open" : ""}">
         <div class="metric-head" @click=${() => this._expanded = s ? -1 : e}>
@@ -1854,7 +1891,8 @@ let q = class extends G {
           { name: "anchor_y", selector: { number: { min: 0, max: 100, mode: "box" } } }
         ]
       },
-      { name: "entity2", selector: { entity: {} } }
+      { name: "entity2", selector: { entity: {} } },
+      { name: "flip", selector: { boolean: {} } }
     ];
   }
   _renderAnchorEditor(t, e) {
@@ -1892,7 +1930,7 @@ let q = class extends G {
   _anchorChanged(t, e, r) {
     if (t.stopPropagation(), !this._config) return;
     const i = { ...t.detail.value }, s = {};
-    i.entity && (s.entity = i.entity), i.entity2 && (s.entity2 = i.entity2), i.name && (s.name = i.name), i.color && (s.color = i.color), i.anchor_x !== void 0 && i.anchor_x !== null && (s.x = i.anchor_x), i.anchor_y !== void 0 && i.anchor_y !== null && (s.y = i.anchor_y);
+    i.entity && (s.entity = i.entity), i.entity2 && (s.entity2 = i.entity2), i.name && (s.name = i.name), i.color && (s.color = i.color), i.anchor_x !== void 0 && i.anchor_x !== null && (s.x = i.anchor_x), i.anchor_y !== void 0 && i.anchor_y !== null && (s.y = i.anchor_y), i.flip && (s.flip = !0);
     const a = [...this._config.metrics], o = [...a[e].anchors ?? []];
     o[r] = s, a[e] = { ...a[e], anchors: o }, this._emit({ ...this._config, metrics: a });
   }
@@ -2098,12 +2136,12 @@ pe([
 q = pe([
   at("health-card-editor")
 ], q);
-var Kt = Object.defineProperty, Yt = Object.getOwnPropertyDescriptor, P = (t, e, r, i) => {
-  for (var s = i > 1 ? void 0 : i ? Yt(e, r) : e, a = t.length - 1, o; a >= 0; a--)
+var Kt = Object.defineProperty, Zt = Object.getOwnPropertyDescriptor, P = (t, e, r, i) => {
+  for (var s = i > 1 ? void 0 : i ? Zt(e, r) : e, a = t.length - 1, o; a >= 0; a--)
     (o = t[a]) && (s = (i ? o(e, r, s) : o(s)) || s);
   return i && s && Kt(e, r, s), s;
 };
-const Zt = "0.9.0", Xt = 5 * 60 * 1e3, Jt = 15 * 60 * 1e3, Qt = ["default", "withings", "glass", "material", "bubble", "mirror"], ae = [
+const Yt = "0.10.0", Xt = 5 * 60 * 1e3, Jt = 15 * 60 * 1e3, Qt = ["default", "withings", "glass", "material", "bubble", "mirror"], ae = [
   { key: "day", kind: "hour", count: 24 },
   { key: "week", kind: "day", count: 7 },
   { key: "month", kind: "day", count: 30 },
@@ -2180,7 +2218,7 @@ let M = class extends G {
     const r = `${t}|${e}`;
     if (this._statsCache[r] && Date.now() - (this._statsCacheTime[r] ?? 0) < 18e5 || this._statsFetching.has(r)) return;
     const s = this._watchedEntities();
-    s.length && (this._statsFetching.add(r), Ot(this.hass, s, e, t).then((a) => {
+    s.length && (this._statsFetching.add(r), zt(this.hass, s, e, t).then((a) => {
       this._statsCacheTime[r] = Date.now(), this._statsCache = { ...this._statsCache, [r]: a };
     }).catch((a) => console.warn("health-card: statistics fetch failed", a)).finally(() => {
       this._statsFetching.delete(r);
@@ -2190,7 +2228,7 @@ let M = class extends G {
   _bucketsFor(t, e, r, i) {
     var s, a;
     if (e === "hour")
-      return zt(this._history[t] ?? [], r, i);
+      return Ot(this._history[t] ?? [], r, i);
     if (e === "month") {
       const o = (s = this._statsCache[`month|${r}`]) == null ? void 0 : s[t];
       return o != null && o.length ? qe(o, r, i, "month") : new Array(r).fill(NaN);
@@ -2314,12 +2352,12 @@ let M = class extends G {
   }
   /** Builds the shared render context for a metric (used by tile and popup). */
   _ctx(t, e) {
-    var m, y, A;
-    const r = t.type && z[t.type] ? t.type : "custom", i = z[r], s = C(t.color) ?? C(i.color), a = t.name ?? $(this.hass, r), o = t.icon ?? i.icon, n = Object.values(t.phases ?? {}).filter(Boolean);
+    var m, y, w;
+    const r = t.type && O[t.type] ? t.type : "custom", i = O[r], s = C(t.color) ?? C(i.color), a = t.name ?? $(this.hass, r), o = t.icon ?? i.icon, n = Object.values(t.phases ?? {}).filter(Boolean);
     let c = this._series(t);
     !c.length && r === "sleep" && n.length && (c = [{ entity: n[0] }]);
-    const d = (m = c[0]) != null && m.entity ? this.hass.states[c[0].entity] : void 0, l = (e == null ? void 0 : e.kind) ?? "day", h = Math.max(1, (e == null ? void 0 : e.count) ?? t.days ?? ((y = this._config) == null ? void 0 : y.days) ?? 7), g = t.graph ?? i.graph, b = t.aggregate ?? i.aggregate, _ = t.trend ?? i.trend, k = t.precision ?? i.precision, S = t.unit ?? ((A = c[0]) == null ? void 0 : A.unit) ?? (d == null ? void 0 : d.attributes.unit_of_measurement) ?? i.unit ?? "", f = c.map((N, U) => {
-      const K = this._bucketsFor(N.entity, l, h, b);
+    const d = (m = c[0]) != null && m.entity ? this.hass.states[c[0].entity] : void 0, l = (e == null ? void 0 : e.kind) ?? "day", h = Math.max(1, (e == null ? void 0 : e.count) ?? t.days ?? ((y = this._config) == null ? void 0 : y.days) ?? 7), g = t.graph ?? i.graph, f = t.aggregate ?? i.aggregate, x = t.trend ?? i.trend, S = t.precision ?? i.precision, A = t.unit ?? ((w = c[0]) == null ? void 0 : w.unit) ?? (d == null ? void 0 : d.attributes.unit_of_measurement) ?? i.unit ?? "", b = c.map((N, U) => {
+      const K = this._bucketsFor(N.entity, l, h, f);
       return {
         ...N,
         colorResolved: C(N.color) ?? (U === 0 ? s : C(se[(U - 1) % se.length])),
@@ -2327,19 +2365,19 @@ let M = class extends G {
         filled: Ke(K)
       };
     });
-    let x;
-    if (r === "sleep" && !t.entity && t.phases && f.length) {
+    let _;
+    if (r === "sleep" && !t.entity && t.phases && b.length) {
       const N = ["deep", "light", "rem"].map((U) => t.phases[U]).filter(Boolean);
       if (N.length) {
         const U = N.map(
-          (j) => this._bucketsFor(j, l, h, b)
+          (j) => this._bucketsFor(j, l, h, f)
         ), K = Array.from({ length: h }, (j, ue) => {
           const Ne = U.map((me) => me[ue]).filter(Number.isFinite);
           return Ne.length ? Ne.reduce((me, dt) => me + dt, 0) : NaN;
         });
-        f[0] = { ...f[0], buckets: K, filled: Ke(K) };
+        b[0] = { ...b[0], buckets: K, filled: Ke(K) };
         const Ce = N.map((j) => this._numeric(this.hass.states[j])).filter(Number.isFinite);
-        Ce.length && (x = Ce.reduce((j, ue) => j + ue, 0));
+        Ce.length && (_ = Ce.reduce((j, ue) => j + ue, 0));
       }
     }
     return {
@@ -2354,12 +2392,12 @@ let M = class extends G {
       days: h,
       kind: l,
       graph: g,
-      aggregate: b,
-      trendMode: _,
-      precision: k,
-      unit: S,
-      data: f,
-      valueOverride: x,
+      aggregate: f,
+      trendMode: x,
+      precision: S,
+      unit: A,
+      data: b,
+      valueOverride: _,
       goalType: t.goal_type ?? i.goalType ?? "atleast",
       multi: !!t.entities && c.length > 1
     };
@@ -2510,7 +2548,7 @@ let M = class extends G {
       d
     )}
           <div class="scoreinner">
-            <div class="scorenum">${w(this.hass, s, r.precision ?? 0)}</div>
+            <div class="scorenum">${k(this.hass, s, r.precision ?? 0)}</div>
             <div class="scoremax">${$(this.hass, "of")} ${a}</div>
           </div>
         </div>
@@ -2526,7 +2564,7 @@ let M = class extends G {
                     ></div>
                   </div>
                   <span class="sbar-val">
-                    ${Number.isFinite(l.value) ? w(this.hass, l.value, 0) : "–"}
+                    ${Number.isFinite(l.value) ? k(this.hass, l.value, 0) : "–"}
                   </span>
                 </div>`;
     })}
@@ -2542,10 +2580,10 @@ let M = class extends G {
     const r = t.m, i = t.primaryState, s = this._numeric(i, r.attribute), a = this._resolveGoal(r.goal);
     let o = 0;
     Number.isFinite(s) && Number.isFinite(a) && a > 0 && (o = Math.max(-0.35, Math.min((s / a - 1) * 2.5, 1.1)));
-    const n = r.sleep_entity ? this._numeric(this.hass.states[r.sleep_entity]) : NaN, c = Number.isFinite(n) ? Math.max(0, Math.min((60 - n) / 45, 1)) : 0, d = r.temperature_entity ? this._numeric(this.hass.states[r.temperature_entity]) : NaN, l = r.fever_from ?? 37.8, h = Number.isFinite(d) && d >= l ? Math.min((d - l) / 2 + 0.4, 1) : 0, g = r.score_entity ? this._numeric(this.hass.states[r.score_entity]) : NaN, b = r.max ?? 100, _ = Number.isFinite(g) ? 0.25 + g / b * 0.55 : 0, k = Number.isFinite(g) ? this._scoreColor(g, b) : "transparent", S = (r.anchors ?? []).filter((m) => this.hass.states[m.entity]), f = S.find((m) => {
-      var y;
-      return m.entity2 && ((y = m.position) == null ? void 0 : y.startsWith("arm"));
-    }), x = (f == null ? void 0 : f.position) === "arm-left" ? "left" : (f == null ? void 0 : f.position) === "arm-right" ? "right" : void 0;
+    const n = r.sleep_entity ? this._numeric(this.hass.states[r.sleep_entity]) : NaN, c = r.tired_below ?? 60, d = Number.isFinite(n) && n < c ? Math.min((c - n) / 45 + 0.15, 1) : 0, l = r.temperature_entity ? this._numeric(this.hass.states[r.temperature_entity]) : NaN, h = r.fever_from ?? 37.8, g = Number.isFinite(l) && l >= h ? Math.min((l - h) / 2 + 0.4, 1) : 0, f = r.score_entity ? this._numeric(this.hass.states[r.score_entity]) : NaN, x = r.max ?? 100, S = Number.isFinite(f) ? 0.25 + f / x * 0.55 : 0, A = Number.isFinite(f) ? this._scoreColor(f, x) : "transparent", b = (r.anchors ?? []).filter((y) => this.hass.states[y.entity]), _ = b.find((y) => {
+      var w;
+      return y.entity2 && ((w = y.position) == null ? void 0 : w.startsWith("arm"));
+    }), m = (_ == null ? void 0 : _.position) === "arm-left" ? "left" : (_ == null ? void 0 : _.position) === "arm-right" ? "right" : void 0;
     return u`
       <div
         class="metric body-metric ${(r.tap_action ?? "popup") === "none" ? "noclick" : ""}"
@@ -2561,36 +2599,41 @@ let M = class extends G {
           </div>
         </div>
         <div class="bodywrap">
-          ${this._bodyImage(r, o) ? u`
-                ${_ > 0 ? u`<div
-                      class="body-glow"
-                      style="--hc-glow:${k};opacity:${_}"
-                    ></div>` : p}
-                ${r.image_remove_black ? u`<svg class="unblack-defs" aria-hidden="true">
-                      <filter id="hc-unblack">
-                        <feColorMatrix
-                          type="matrix"
-                          values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  1.2 1.8 0.7 0 -0.18"
-                        />
-                      </filter>
-                    </svg>` : p}
-                <img
-                  class="bodyimg"
-                  src=${this._bodyImage(r, o)}
-                  style=${r.image_remove_black ? "filter: url(#hc-unblack)" : ""}
-                  alt=""
-                />
-                ${h > 0 ? u`<div class="body-fever" style="opacity:${h}"></div>` : p}
-              ` : Tt({
+          ${S > 0 && this._bodyImage(r, o) ? u`<div
+                class="body-glow"
+                style="--hc-glow:${A};opacity:${S}"
+              ></div>` : p}
+          <div
+            class="bodyframe ${r.body_crop === "upper" ? "crop-upper" : ""}"
+            style="--hc-frame-ar:${this._frameAspect(r)};--hc-zoom:${r.figure_zoom ?? 1}"
+          >
+            ${this._bodyImage(r, o) ? u`
+                  ${r.image_remove_black ? u`<svg class="unblack-defs" aria-hidden="true">
+                        <filter id="hc-unblack">
+                          <feColorMatrix
+                            type="matrix"
+                            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  1.2 1.8 0.7 0 -0.18"
+                          />
+                        </filter>
+                      </svg>` : p}
+                  <img
+                    class="bodyimg"
+                    src=${this._bodyImage(r, o)}
+                    style=${r.image_remove_black ? "filter: url(#hc-unblack)" : ""}
+                    alt=""
+                  />
+                  ${g > 0 ? u`<div class="body-fever" style="opacity:${g}"></div>` : p}
+                ` : Tt({
       gender: r.gender ?? "female",
       shape: o,
-      tired: c,
-      fever: h,
-      glow: _,
-      glowColor: k,
-      cuff: x
+      tired: d,
+      fever: g,
+      glow: S,
+      glowColor: A,
+      cuff: m
     })}
-          ${S.map((m, y) => this._renderAnchor(m, y))}
+          </div>
+          ${b.map((y, w) => this._renderAnchor(y, w))}
         </div>
         <div class="body-foot">
           ${this._renderValue(r, t.type, t.data, i, t.unit, t.precision, !1)}
@@ -2616,6 +2659,14 @@ let M = class extends G {
     }
     return t.images ? (r === "slim" ? t.images.slim : r === "full" ? t.images.full : t.images.regular) ?? t.images.regular ?? t.images.slim ?? t.images.full : void 0;
   }
+  /**
+   * Frame aspect ratio (width/height) for the upper-body crop — wider than the
+   * portrait figure so only head + torso stay visible. Full crop ignores this
+   * (natural flow), so a single value works for images and the drawn SVG.
+   */
+  _frameAspect(t) {
+    return t.body_crop === "upper" ? 1.25 : 1;
+  }
   /** Base URL for bundled figure images (served next to the card by default). */
   _figureBase(t) {
     if (t.figure_base) return t.figure_base.endsWith("/") ? t.figure_base : `${t.figure_base}/`;
@@ -2628,28 +2679,26 @@ let M = class extends G {
   _renderAnchor(t, e) {
     const r = M.ANCHOR_POS[t.position ?? "chest"], i = this.hass.states[t.entity];
     if (!r || !i) return p;
-    const s = {
-      x: t.x ?? r.x,
-      y: t.y ?? r.y,
-      side: t.x !== void 0 && !t.position ? t.x >= 50 ? "right" : "left" : r.side
-    }, a = C(t.color) ?? C(se[e % se.length]), o = this._numeric(i);
-    let n;
+    let s = t.x !== void 0 && !t.position ? t.x >= 50 ? "right" : "left" : r.side;
+    t.flip && (s = s === "right" ? "left" : "right");
+    const a = { x: t.x ?? r.x, y: t.y ?? r.y, side: s }, o = C(t.color) ?? C(se[e % se.length]), n = this._numeric(i);
+    let c;
     if (t.entity2) {
-      const c = this._numeric(this.hass.states[t.entity2]);
-      n = `${w(this.hass, o, 0)}/${w(this.hass, c, 0)}`;
+      const d = this._numeric(this.hass.states[t.entity2]);
+      c = `${k(this.hass, n, 0)}/${k(this.hass, d, 0)}`;
     } else
-      n = Number.isFinite(o) ? Z(
-        w(this.hass, o),
+      c = Number.isFinite(n) ? Y(
+        k(this.hass, n),
         i.attributes.unit_of_measurement ?? ""
       ) : i.state;
     return u`<div
-      class="anchor ${s.side}"
-      style="left:${s.x}%;top:${s.y}%;--ac:${a}"
+      class="anchor ${a.side}"
+      style="left:${a.x}%;top:${a.y}%;--ac:${o}"
     >
       <span class="anchor-dot"></span>
       <div class="anchor-chip">
         <span class="anchor-name">${t.name ?? i.attributes.friendly_name ?? ""}</span>
-        <span class="anchor-val">${n}</span>
+        <span class="anchor-val">${c}</span>
       </div>
     </div>`;
   }
@@ -2663,7 +2712,7 @@ let M = class extends G {
     if (!t.score_entity) return p;
     const e = this._numeric(this.hass.states[t.score_entity]);
     return Number.isFinite(e) ? u`<span class="scorebadge" style="background:${this._scoreColor(e, 100)}">
-      ${w(this.hass, e, 0)}
+      ${k(this.hass, e, 0)}
     </span>` : p;
   }
   /** Calendar heatmap: one cell per day, tinted by the score entity's value. */
@@ -2704,7 +2753,7 @@ let M = class extends G {
       }).find(Boolean), s = t.m.unit ?? (t.valueOverride !== void 0 ? i : (r = t.primaryState) == null ? void 0 : r.attributes.unit_of_measurement);
       return oe(e, s);
     }
-    return Z(w(this.hass, e, t.precision), t.unit);
+    return Y(k(this.hass, e, t.precision), t.unit);
   }
   /** Axis marks for the popup chart: gridlines and labels per range kind. */
   _xMarks(t, e) {
@@ -2795,7 +2844,7 @@ let M = class extends G {
    * chart with axes, stats grid and metric-specific extras.
    */
   _renderDetails(t, e, r, i) {
-    var x;
+    var _;
     const s = e.data[0].buckets.filter(Number.isFinite), a = _e(e.data[0].filled), o = this._resolveGoal(t.goal), n = e.valueOverride ?? this._numeric(e.primaryState, t.attribute), c = [];
     if (s.length && (c.push(
       {
@@ -2823,23 +2872,23 @@ let M = class extends G {
         value: m > 0 ? this._fmtMetricValue(e, m) : "✓"
       });
     }
-    const d = e.days, l = e.kind === "month" || e.kind === "day" && d > 16, h = e.graph === "bar" || e.graph === "progress" ? "bar" : "line", g = t.duration ?? e.preset.duration, b = (m) => g ? this._fmtMetricValue(e, m) : w(this.hass, m, e.precision), _ = {
+    const d = e.days, l = e.kind === "month" || e.kind === "day" && d > 16, h = e.graph === "bar" || e.graph === "progress" ? "bar" : "line", g = t.duration ?? e.preset.duration, f = (m) => g ? this._fmtMetricValue(e, m) : k(this.hass, m, e.precision), x = {
       w: l ? d * (e.kind === "month" ? 14 : 10) : 340,
       h: l ? 110 : 130,
       dots: e.kind === "day" && d <= 14,
-      yFmt: b,
+      yFmt: f,
       xMarks: this._xMarks(e.kind, d)
-    }, k = h === "bar" ? Ze(
+    }, S = h === "bar" ? Ye(
       e.data[0].buckets,
       e.data[0].colorResolved,
       Number.isFinite(o) ? o : void 0,
-      _
-    ) : Ye(
+      x
+    ) : Ze(
       e.data.map((m) => ({ values: m.filled, color: m.colorResolved })),
-      _
-    ), S = Math.min(d, 91), f = e.type === "sleep" && e.kind === "day" && t.score_entity && this.hass.states[t.score_entity] ? this._renderScoreCalendar(
-      this._bucketsFor(t.score_entity, "day", S, "mean"),
-      S
+      x
+    ), A = Math.min(d, 91), b = e.type === "sleep" && e.kind === "day" && t.score_entity && this.hass.states[t.score_entity] ? this._renderScoreCalendar(
+      this._bucketsFor(t.score_entity, "day", A, "mean"),
+      A
     ) : p;
     return u`
       <div class="periods">
@@ -2857,8 +2906,8 @@ let M = class extends G {
       ${e.graph === "progress" ? this._renderChart(t, "progress", e.data, e.unit, e.precision) : p}
       <div class="popup-chart">
         ${l ? u`<div class="chart-scroll">
-              <div style="width:${_.w}px">${k}</div>
-            </div>` : k}
+              <div style="width:${x.w}px">${S}</div>
+            </div>` : S}
       </div>
       ${c.length ? u`<div class="stats">
             ${c.map(
@@ -2868,8 +2917,8 @@ let M = class extends G {
               </div>`
     )}
           </div>` : p}
-      ${f}
-      ${e.type === "toothbrush" && ((x = e.series[0]) != null && x.entity) ? this._renderEventTimes(e.series[0].entity) : p}
+      ${b}
+      ${e.type === "toothbrush" && ((_ = e.series[0]) != null && _.entity) ? this._renderEventTimes(e.series[0].entity) : p}
       ${e.multi ? this._renderSeriesChips(e.data, e.precision, e.trendMode) : p}
       ${e.type === "sleep" && t.phases ? this._renderSleepPhases(t) : p}
       ${this._renderSecondary(t)}
@@ -2977,17 +3026,17 @@ let M = class extends G {
     if (e === "blood_pressure" && r.length >= 2) {
       const d = this._numeric(i, t.attribute), l = this._numeric(this.hass.states[r[1].entity]);
       return u`<div class="value">
-          ${w(this.hass, d, 0)}/${w(this.hass, l, 0)}
+          ${k(this.hass, d, 0)}/${k(this.hass, l, 0)}
           <span class="unit">${s}</span>
         </div>
         <div class="bplabels">
           <span class="bpitem">
             <span class="bpdot" style="background:${r[0].colorResolved}"></span>SYS
-            ${w(this.hass, d, 0)}
+            ${k(this.hass, d, 0)}
           </span>
           <span class="bpitem">
             <span class="bpdot" style="background:${r[1].colorResolved}"></span>DIA
-            ${w(this.hass, l, 0)}
+            ${k(this.hass, l, 0)}
           </span>
         </div>`;
     }
@@ -3007,7 +3056,7 @@ let M = class extends G {
       </div>`;
     }
     return u`<div class="value">
-      ${w(this.hass, c, a)}<span class="unit">${s}</span>
+      ${k(this.hass, c, a)}<span class="unit">${s}</span>
     </div>`;
   }
   _renderSeriesChips(t, e, r) {
@@ -3019,7 +3068,7 @@ let M = class extends G {
                 <ha-icon .icon=${d}></ha-icon>
               </span>` : p}
           <span class="serieslabel">
-            ${n}: ${Number.isFinite(a) ? Z(w(this.hass, a, e), o) : (s == null ? void 0 : s.state) ?? "–"}
+            ${n}: ${Number.isFinite(a) ? Y(k(this.hass, a, e), o) : (s == null ? void 0 : s.state) ?? "–"}
           </span>
         </div>`;
     })}
@@ -3032,19 +3081,19 @@ let M = class extends G {
       const s = this.hass.states[i];
       if (!s) return;
       const a = this._numeric(s), o = s.attributes.unit_of_measurement ?? "";
-      return Number.isFinite(a) ? Z(w(this.hass, a), o) : s.state;
+      return Number.isFinite(a) ? Y(k(this.hass, a), o) : s.state;
     }).filter(Boolean);
     return e.length ? u`<div class="secondary">${e.join(" • ")}</div>` : p;
   }
   _renderStatus(t, e, r, i, s, a, o = "atleast", n) {
     const c = n ?? this._numeric(r, t.attribute), d = this._resolveGoal(t.goal);
     if (Number.isFinite(d) && Number.isFinite(c)) {
-      const x = this._resolveGoal(t.start);
+      const _ = this._resolveGoal(t.start);
       let m = NaN;
-      if (Number.isFinite(x) && x !== d ? m = (x - c) / (x - d) * 100 : d > 0 && (m = o === "atmost" ? d / c * 100 : c / d * 100), !Number.isNaN(m)) {
-        const y = Math.round(Math.min(Math.max(m, 0), 999)), A = y >= 100;
-        return u`<div class="status ${A ? "good" : ""}">
-          <ha-icon .icon=${A ? "mdi:check-circle" : "mdi:flag-outline"}></ha-icon>
+      if (Number.isFinite(_) && _ !== d ? m = (_ - c) / (_ - d) * 100 : d > 0 && (m = o === "atmost" ? d / c * 100 : c / d * 100), !Number.isNaN(m)) {
+        const y = Math.round(Math.min(Math.max(m, 0), 999)), w = y >= 100;
+        return u`<div class="status ${w ? "good" : ""}">
+          <ha-icon .icon=${w ? "mdi:check-circle" : "mdi:flag-outline"}></ha-icon>
           <span>${$(this.hass, "goal")}: ${y} %</span>
         </div>`;
       }
@@ -3052,20 +3101,20 @@ let M = class extends G {
     if (a === "none") return p;
     const l = _e(e.filled);
     if (!Number.isFinite(l)) return p;
-    const h = e.filled.find(Number.isFinite) ?? 0, g = Math.abs(l) < Math.max(Math.abs(h) * 5e-3, 1e-9), b = g || a === "neutral" ? "neutral" : l > 0 == (a === "up_good") ? "good" : "bad", _ = g ? "mdi:arrow-right" : l > 0 ? "mdi:arrow-top-right" : "mdi:arrow-bottom-right", k = t.type && z[t.type] ? t.type : "custom", S = t.duration ?? z[k].duration, f = g ? $(this.hass, "stable") : S ? oe(Math.abs(l), i || void 0) : `${w(this.hass, Math.abs(l), s)}${i ? ` ${i}` : ""}`;
-    return u`<div class="status ${b}">
-      <span class="dotarrow"><ha-icon .icon=${_}></ha-icon></span>
-      <span>${f}</span>
+    const h = e.filled.find(Number.isFinite) ?? 0, g = Math.abs(l) < Math.max(Math.abs(h) * 5e-3, 1e-9), f = g || a === "neutral" ? "neutral" : l > 0 == (a === "up_good") ? "good" : "bad", x = g ? "mdi:arrow-right" : l > 0 ? "mdi:arrow-top-right" : "mdi:arrow-bottom-right", S = t.type && O[t.type] ? t.type : "custom", A = t.duration ?? O[S].duration, b = g ? $(this.hass, "stable") : A ? oe(Math.abs(l), i || void 0) : `${k(this.hass, Math.abs(l), s)}${i ? ` ${i}` : ""}`;
+    return u`<div class="status ${f}">
+      <span class="dotarrow"><ha-icon .icon=${x}></ha-icon></span>
+      <span>${b}</span>
     </div>`;
   }
   _renderChart(t, e, r, i, s) {
     if (e === "line")
-      return u`${Ye(
+      return u`${Ze(
         r.map((a) => ({ values: a.filled, color: a.colorResolved }))
       )}`;
     if (e === "bar") {
       const a = this._resolveGoal(t.goal);
-      return u`${Ze(
+      return u`${Ye(
         r[0].buckets,
         r[0].colorResolved,
         Number.isFinite(a) ? a : void 0
@@ -3079,7 +3128,7 @@ let M = class extends G {
         return u`<div class="pbar">
           ${r.length > 1 ? u`<div class="pbar-label">
                 <span>${o.name ?? (n == null ? void 0 : n.attributes.friendly_name) ?? o.entity}</span>
-                <span>${Z(w(this.hass, c, s), h)}</span>
+                <span>${Y(k(this.hass, c, s), h)}</span>
               </div>` : p}
           <div class="ptrack" style="--hc-p:${o.colorResolved}">
             <div class="pfill" style="width:${l}%"></div>
@@ -3773,16 +3822,31 @@ M.styles = et`
       width: min(240px, 92%);
       margin: 0 auto;
     }
-    .bodyfig {
+    /* the frame clips the figure for crop/zoom; anchors live outside it so
+       their chips can overflow without being cut off. full crop = natural
+       flow (no assumption about the image aspect ratio); upper crop clips to
+       a wide band showing head + torso. */
+    .bodyframe {
+      position: relative;
       width: 100%;
-      height: auto;
-      display: block;
+      overflow: hidden;
     }
+    .bodyfig,
     .bodyimg {
       width: 100%;
       height: auto;
       display: block;
-      position: relative;
+      transform: scale(var(--hc-zoom, 1));
+      transform-origin: 50% 7%;
+    }
+    .bodyframe.crop-upper {
+      aspect-ratio: var(--hc-frame-ar, 1.2);
+    }
+    .bodyframe.crop-upper .bodyfig,
+    .bodyframe.crop-upper .bodyimg {
+      position: absolute;
+      top: 0;
+      left: 0;
     }
     .unblack-defs {
       position: absolute;
@@ -3791,7 +3855,7 @@ M.styles = et`
     }
     .body-glow {
       position: absolute;
-      inset: -4%;
+      inset: -8%;
       border-radius: 50%;
       background: radial-gradient(
         closest-side,
@@ -4183,7 +4247,7 @@ M = P([
   at("health-card")
 ], M);
 console.info(
-  `%c HEALTH-CARD %c v${Zt} `,
+  `%c HEALTH-CARD %c v${Yt} `,
   "color: white; background: #6c5ce7; font-weight: 700; border-radius: 4px 0 0 4px; padding: 2px 6px;",
   "color: #6c5ce7; background: #f1effd; font-weight: 700; border-radius: 0 4px 4px 0; padding: 2px 6px;"
 );
