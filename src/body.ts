@@ -90,9 +90,9 @@ export function bodyFigure(o: BodyOpts): TemplateResult {
       : lerpParams(presets[1], presets[2], Math.min(s / 0.85, 1));
 
   const sh = p.shoulder;
-  // Asymmetric outline: the viewer-right arm flexes (biceps pose, carries the
-  // muscle-mass anchor), the viewer-left arm rests (carries the BP cuff).
-  // Head is rounder with a real neck notch to avoid the alien look.
+  // Built with the flexing arm on the right, then mirrored so it ends up on
+  // the viewer's LEFT — matching the rendered figure images. The resting arm
+  // (with the BP cuff) is therefore on the viewer's right.
   const pts: Pt[] = [
     // head + neck (right side)
     [100, 10],
@@ -101,20 +101,11 @@ export function bodyFigure(o: BodyOpts): TemplateResult {
     [111, 43],
     [105.5, 51],
     [105, 60], // neck notch
-    // trapezius + marked shoulder
+    // trapezius + marked shoulder; the flexed arm is drawn as an overlay,
+    // keeping the silhouette path free of self-intersections
     [100 + sh * 0.55, 66],
-    [100 + sh + 2, 75],
-    // flexed arm: upper arm out, forearm raised diagonally, clear crease
-    [100 + sh + 13, 76], // biceps top edge, near horizontal
-    [100 + p.arm + 12, 82],
-    [100 + p.arm + 22, 92], // elbow
-    [100 + p.arm + 26, 66], // forearm outer edge
-    [100 + p.arm + 21, 48], // fist outer
-    [100 + p.arm + 13, 46], // fist inner
-    [100 + p.arm + 7, 62], // forearm inner edge
-    [100 + p.arm + 2, 80], // elbow crease resting on the biceps
-    [100 + sh + 8, 96], // underside of the upper arm
-    [100 + p.waist + 6, 108], // armpit
+    [100 + sh + 4, 78], // round shoulder cap
+    [100 + p.waist + 6, 106],
     [100 + p.waist + 1, 130],
     [100 + p.waist, 152], // free waist on the flexing side
     [100 + p.belly + 2, 180],
@@ -154,11 +145,26 @@ export function bodyFigure(o: BodyOpts): TemplateResult {
     [83.5, 29],
     [88, 14],
   ];
-  const outline = smoothClosed(pts);
+  const mir = (pt: Pt): Pt => [200 - pt[0], pt[1]];
+  const outline = smoothClosed(pts.map(mir));
 
-  // the cuff always sits on the resting (viewer-left) upper arm
-  const cuffX = 100 - (sh + 7);
-  const cuffAngle = -14;
+  // flexed arm overlay: shoulder → elbow → raised fist, drawn as a stroked
+  // polyline with round caps/joins so it can never self-intersect. Built on
+  // the right, then mirrored to the left with the rest of the figure.
+  const armW = 12 + s * 3;
+  const armPts: Pt[] = [
+    [100 + sh - 6, 80], // shoulder
+    [100 + sh + 20, 92], // elbow, out to the side
+    [100 + sh + 13, 50], // raised fist
+  ];
+  const armPath = armPts
+    .map(mir)
+    .map((pt, i) => `${i ? 'L' : 'M'} ${pt[0].toFixed(1)} ${pt[1].toFixed(1)}`)
+    .join(' ');
+
+  // the cuff sits on the resting (viewer-right after mirroring) upper arm
+  const cuffX = 100 + (sh + 7);
+  const cuffAngle = 14;
 
   return html`<svg class="bodyfig" viewBox="0 0 200 330" aria-hidden="true">
     <defs>
@@ -184,6 +190,8 @@ export function bodyFigure(o: BodyOpts): TemplateResult {
 
     <g class="bodyshape">
       <path class="solid" fill="url(#hc-body-fill)" d=${outline} />
+      <path class="flexarm-outline" d=${armPath} style="stroke-width:${armW + 3}px" />
+      <path class="flexarm" d=${armPath} style="stroke-width:${armW}px" />
     </g>
 
     ${o.fever > 0

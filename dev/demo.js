@@ -255,11 +255,11 @@ const config = {
         {
           entity: 'sensor.blutdruck_sys',
           entity2: 'sensor.blutdruck_dia',
-          position: 'arm-left',
+          position: 'arm-right',
           name: 'Blutdruck',
         },
         { entity: 'sensor.fettanteil', position: 'belly', name: 'Fett' },
-        { entity: 'sensor.muskelmasse', position: 'arm-right', name: 'Muskeln' },
+        { entity: 'sensor.muskelmasse', position: 'arm-left', name: 'Muskeln' },
       ],
     },
     {

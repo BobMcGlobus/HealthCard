@@ -33,7 +33,7 @@ import { barChart, lineChart, scoreGraphic } from './charts';
 import type { AxisMark, ChartOpts } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.8.0';
+const CARD_VERSION = '0.8.1';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
@@ -712,9 +712,10 @@ export class HealthCard extends LitElement {
     { x: number; y: number; side: 'left' | 'right' }
   > = {
     head: { x: 50, y: 9, side: 'right' },
-    chest: { x: 56, y: 32, side: 'right' },
-    'arm-left': { x: 31, y: 27, side: 'left' },
-    'arm-right': { x: 67, y: 20, side: 'left' },
+    chest: { x: 44, y: 32, side: 'left' },
+    // flex arm is on the viewer-left, resting arm (cuff) on the right
+    'arm-left': { x: 30, y: 20, side: 'left' },
+    'arm-right': { x: 69, y: 27, side: 'right' },
     belly: { x: 50, y: 54, side: 'right' },
     legs: { x: 57, y: 75, side: 'right' },
   };
@@ -2219,6 +2220,18 @@ export class HealthCard extends LitElement {
     .bodyshape .solid {
       stroke: var(--hc-body-stroke);
       stroke-width: 1.5;
+      stroke-linejoin: round;
+    }
+    .bodyshape .flexarm {
+      fill: none;
+      stroke: var(--hc-body-top);
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .bodyshape .flexarm-outline {
+      fill: none;
+      stroke: var(--hc-body-stroke);
+      stroke-linecap: round;
       stroke-linejoin: round;
     }
     .s-glass .body-metric {
