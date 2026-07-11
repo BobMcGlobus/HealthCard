@@ -28,6 +28,7 @@ export type MetricType =
   | 'score'
   | 'toothbrush'
   | 'body'
+  | 'cycle'
   | 'custom';
 
 export type GraphType = 'line' | 'bar' | 'progress' | 'none';
@@ -73,6 +74,16 @@ export interface BodyAnchor {
   y?: number;
   /** put the label on the opposite side of the dot */
   flip?: boolean;
+  /** where the dot sits relative to the label (8-way); overrides flip/side */
+  dot?:
+    | 'left'
+    | 'right'
+    | 'top'
+    | 'bottom'
+    | 'top-left'
+    | 'top-right'
+    | 'bottom-left'
+    | 'bottom-right';
 }
 
 export interface SeriesConfig {
@@ -145,10 +156,20 @@ export interface MetricConfig {
   sleep_entity?: string;
   /** Body metrics: sleep score below which eye shadows appear (default 60) */
   tired_below?: number;
+  /** Body metrics: eye-shadow position (percent of figure area) */
+  tired_x?: number;
+  tired_y?: number;
   /** Body metrics: body temperature entity — fever tints head and chest */
   temperature_entity?: string;
   /** Body metrics: temperature that counts as fever (default 37.8) */
   fever_from?: number;
+  /** Body metrics: fever glow position (percent of figure area) */
+  fever_x?: number;
+  fever_y?: number;
+  /** Body metrics: force-show fever + eye shadows for placement/preview */
+  preview_effects?: boolean;
+  /** Body metrics: fade the bottom edge of the figure (default true) */
+  fade_figure?: boolean;
   /** Body metrics: show the whole figure or only head + torso */
   body_crop?: 'full' | 'upper';
   /** Body metrics: zoom factor for the figure (default 1) */
@@ -173,6 +194,15 @@ export interface MetricConfig {
    * into alpha so black becomes transparent — works on light and dark themes.
    */
   image_remove_black?: boolean;
+
+  /** Cycle metrics: total cycle length in days (default 28) */
+  cycle_length?: number;
+  /** Cycle metrics: period (menstruation) length in days (default 5) */
+  period_length?: number;
+  /** Cycle metrics: day of ovulation (default cycle_length − 14) */
+  ovulation_day?: number;
+  /** Cycle metrics: text sensor for the phase name (overrides the computed one) */
+  phase_entity?: string;
 }
 
 export interface HealthCardConfig {

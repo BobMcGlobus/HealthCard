@@ -172,6 +172,14 @@ export const PRESETS: Record<MetricType, MetricPreset> = {
     precision: 1,
     goalType: 'atmost',
   },
+  cycle: {
+    icon: 'mdi:calendar-heart',
+    color: 'pink',
+    graph: 'none',
+    aggregate: 'last',
+    trend: 'none',
+    precision: 0,
+  },
   custom: {
     icon: 'mdi:chart-line',
     color: 'primary',

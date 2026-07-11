@@ -118,6 +118,7 @@ const states = {
   'sensor.koerperscore': entity('sensor.koerperscore', 74, { friendly_name: 'Körper' }),
   'sensor.herzscore': entity('sensor.herzscore', 91, { friendly_name: 'Herz' }),
   'sensor.zahnputzzeit': entity('sensor.zahnputzzeit', 135, { unit_of_measurement: 's', friendly_name: 'Zahnputzzeit' }),
+  'sensor.zyklustag': entity('sensor.zyklustag', 12, { friendly_name: 'Zyklustag' }),
 };
 
 // value profiles for fake history: [base, dailyTrend, jitter]
@@ -245,6 +246,7 @@ const config = {
       type: 'body',
       entity: 'sensor.gewicht',
       gender: 'male',
+      figure_style: 'svg',
       goal: 'sensor.zielgewicht',
       start: 'sensor.startgewicht',
       score_entity: 'sensor.gesundheitsscore',
@@ -270,19 +272,23 @@ const config = {
       goal: 'sensor.zielgewicht',
       start: 'sensor.startgewicht',
       score_entity: 'sensor.gesundheitsscore',
-      figure_style: 'glass',
       figure_base: '/figures/',
+      sleep_entity: 'sensor.schlafwert',
+      temperature_entity: 'sensor.koerpertemperatur',
+      tired_y: 10,
+      fever_y: 8,
       anchors: [
-        { entity: 'sensor.puls', name: 'Puls', x: 55, y: 26 },
+        { entity: 'sensor.puls', name: 'Puls', x: 55, y: 30, dot: 'left' },
         {
           entity: 'sensor.blutdruck_sys',
           entity2: 'sensor.blutdruck_dia',
           name: 'Blutdruck',
           x: 70,
-          y: 30,
+          y: 34,
+          dot: 'left',
         },
-        { entity: 'sensor.fettanteil', name: 'Fett', x: 50, y: 44 },
-        { entity: 'sensor.muskelmasse', name: 'Muskeln', x: 33, y: 16 },
+        { entity: 'sensor.fettanteil', name: 'Fett', x: 50, y: 50, dot: 'right' },
+        { entity: 'sensor.muskelmasse', name: 'Muskeln', x: 33, y: 20, dot: 'bottom-right' },
       ],
     },
     {
@@ -331,6 +337,12 @@ const config = {
       },
     },
     { type: 'toothbrush', entity: 'sensor.zahnputzzeit', goal: 120 },
+    {
+      type: 'cycle',
+      entity: 'sensor.zyklustag',
+      cycle_length: 28,
+      period_length: 5,
+    },
   ],
 };
 
@@ -377,9 +389,9 @@ document.getElementById('style').addEventListener('click', () => {
 });
 
 const bodyImgMetric = () => current.metrics.find((m) => m.name === 'Körper (Bilder)');
-const FIGURES = ['glass', 'pixar', 'mannequin', 'flat', 'svg'];
+const FIGURES = ['mannequin', 'pixar', 'glass', 'flat', 'svg'];
 document.getElementById('figure').addEventListener('click', () => {
-  const cur = bodyImgMetric().figure_style;
+  const cur = bodyImgMetric().figure_style ?? 'mannequin';
   const next = FIGURES[(FIGURES.indexOf(cur) + 1) % FIGURES.length];
   bodyImgMetric().figure_style = next;
   card.setConfig({ ...current });
@@ -398,4 +410,10 @@ document.getElementById('zoom').addEventListener('click', () => {
   bodyImgMetric().figure_zoom = next;
   card.setConfig({ ...current });
   document.getElementById('zoom').textContent = `Zoom: ${next}`;
+});
+document.getElementById('fx').addEventListener('click', () => {
+  const next = !bodyImgMetric().preview_effects;
+  bodyImgMetric().preview_effects = next;
+  card.setConfig({ ...current });
+  document.getElementById('fx').textContent = `Effekte: ${next ? 'an' : 'aus'}`;
 });

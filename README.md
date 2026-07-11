@@ -31,7 +31,20 @@ Trend-Pfeilen und Zielen. Vollständig Theme-kompatibel (Light & Dark).
 
 > Die mitgelieferten Figuren liegen neben `health-card.js` im Ordner `figures/`. Bei manueller Installation den `figures/`-Ordner mit nach `config/www/` kopieren; oder eine eigene Basis-URL per `figure_base` setzen.
 
-Weitere Body-Optionen: `body_crop: upper` zeigt nur Kopf + Oberkörper, `figure_zoom` (z. B. `1.4`) zoomt die Figur, `tired_below` (Default 60) legt fest, ab welchem Schlafwert Augenringe erscheinen (analog `fever_from` fürs Fieber). Jeder Anker unterstützt `flip: true`, um das Label auf die andere Seite des Punkts zu legen.
+Weitere Body-Optionen: `body_crop: upper` zeigt nur Kopf + Oberkörper (weich ausgeblendet), `figure_zoom` (z. B. `1.4`) skaliert die Figur ohne sie abzuschneiden, `fade_figure` (Default an) blendet die Unterkante weich aus. `tired_below` (Default 60) legt fest, ab welchem Schlafwert Augenringe erscheinen (analog `fever_from` fürs Fieber); `tired_x`/`tired_y` und `fever_x`/`fever_y` positionieren die Effekte, `preview_effects: true` zeigt beide zum Ausrichten. Jeder Anker sitzt exakt auf seinem `x`/`y`-Punkt; `dot` legt in 8 Richtungen fest, wo das Label relativ zum Punkt sitzt (`left`, `right`, `top`, `bottom`, `top-left`, `top-right`, `bottom-left`, `bottom-right`).
+
+### Zyklus (`type: cycle`)
+
+Menstruationszyklus als Ring im Withings-Stil: farbige Phasen (Periode, Follikel-, fruchtbare, Luteal­phase), Marker am aktuellen Tag, Phasenname und „Periode in X Tagen".
+
+```yaml
+- type: cycle
+  entity: sensor.zyklustag        # aktueller Zyklustag (Zahl)
+  cycle_length: 28                # Zykluslänge (Default 28)
+  period_length: 5                # Periodenlänge (Default 5)
+  ovulation_day: 14               # optional (Default: Länge − 14)
+  phase_entity: sensor.zyklusphase # optional: Phasenname vom Sensor
+```
 - 📖 **Erweiterte Kachel** (`expanded: true`): zeigt Zeitraum-Auswahl, großen Achsen-Chart und Statistiken direkt auf der Kachel statt im Popup
 - 🖱️ **Visueller Editor**: Metriken per UI hinzufügen, sortieren, konfigurieren
 - 🌍 Deutsch & Englisch (automatisch nach HA-Sprache)

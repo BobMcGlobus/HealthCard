@@ -29,11 +29,11 @@ import {
   trendDelta,
 } from './history';
 import type { HistoryMap, StatsMap, StatsPeriod } from './history';
-import { barChart, lineChart, scoreGraphic } from './charts';
-import type { AxisMark, ChartOpts } from './charts';
+import { barChart, cycleRing, lineChart, scoreGraphic } from './charts';
+import type { AxisMark, ChartOpts, CycleSegment } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.10.0';
+const CARD_VERSION = '0.11.0';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
@@ -503,6 +503,7 @@ export class HealthCard extends LitElement {
 
     if (c.type === 'score') return this._renderScore(c, index);
     if (c.type === 'body') return this._renderBody(c, index);
+    if (c.type === 'cycle') return this._renderCycle(c, index);
 
     // expanded tiles show the popup details inline
     if (m.expanded) {
@@ -707,6 +708,74 @@ export class HealthCard extends LitElement {
     `;
   }
 
+  /** Menstrual cycle ring with phase arcs, current-day marker and phase label. */
+  private _renderCycle(c: MetricCtx, index: number): TemplateResult {
+    const m = c.m;
+    const primaryState = c.primaryState!;
+    const len = Math.max(2, Math.round(m.cycle_length ?? 28));
+    const period = Math.max(1, Math.round(m.period_length ?? 5));
+    const ov = Math.round(m.ovulation_day ?? len - 14);
+    const rawDay = this._numeric(primaryState, m.attribute);
+    const day = Number.isFinite(rawDay)
+      ? Math.max(1, Math.min(Math.round(rawDay), len))
+      : 1;
+
+    const fertileStart = Math.max(period + 1, ov - 4);
+    const fertileEnd = Math.min(len, ov + 1);
+    const RED = 'var(--red-color, #e53935)';
+    const GREEN = 'var(--teal-color, #009688)';
+    const FOLL = 'color-mix(in srgb, var(--purple-color, #9C27B0) 35%, transparent)';
+    const LUT = 'color-mix(in srgb, var(--amber-color, #FFC107) 45%, transparent)';
+    const segments: CycleSegment[] = [{ from: 1, to: period, color: RED }];
+    if (fertileStart > period + 1)
+      segments.push({ from: period + 1, to: fertileStart - 1, color: FOLL });
+    segments.push({ from: fertileStart, to: fertileEnd, color: GREEN });
+    if (fertileEnd < len) segments.push({ from: fertileEnd + 1, to: len, color: LUT });
+
+    // phase of the current day
+    let phaseKey: string;
+    if (day <= period) phaseKey = 'menstruation';
+    else if (day === ov) phaseKey = 'ovulation';
+    else if (day >= fertileStart && day <= fertileEnd) phaseKey = 'fertile';
+    else if (day < fertileStart) phaseKey = 'follicular';
+    else phaseKey = 'luteal';
+    const phaseName = m.phase_entity
+      ? (this.hass.states[m.phase_entity]?.state ?? t(this.hass, `phase_${phaseKey}`))
+      : t(this.hass, `phase_${phaseKey}`);
+
+    const daysToPeriod = ((len - day + 1) % len) || len;
+    const note =
+      day >= len
+        ? t(this.hass, 'period_today')
+        : t(this.hass, 'period_in').replace('{n}', String(daysToPeriod));
+
+    return html`
+      <div
+        class="metric cycle-metric ${(m.tap_action ?? 'popup') === 'none' ? 'noclick' : ''}"
+        style="--hc-accent:${c.accent}"
+        @click=${() => this._handleTap(m, index, primaryState.entity_id)}
+      >
+        <div class="head">
+          <div class="iconchip"><ha-icon .icon=${c.icon}></ha-icon></div>
+          <div class="name">${c.name}</div>
+          <div class="time">
+            ${fmtLastUpdated(this.hass, primaryState.last_updated)}
+          </div>
+        </div>
+        <div class="scorewrap">
+          ${cycleRing(day, len, segments)}
+          <div class="scoreinner">
+            <div class="scoremax">${t(this.hass, 'cycle_day')}</div>
+            <div class="scorenum">${fmtNumber(this.hass, day, 0)}</div>
+            <div class="scoremax">${t(this.hass, 'cycle_of')} ${len}</div>
+          </div>
+        </div>
+        <div class="cycle-phase" style="color:${c.accent}">${phaseName}</div>
+        <div class="cycle-note">${note}</div>
+      </div>
+    `;
+  }
+
   private static readonly ANCHOR_POS: Record<
     string,
     { x: number; y: number; side: 'left' | 'right' }
@@ -732,9 +801,10 @@ export class HealthCard extends LitElement {
     if (Number.isFinite(v) && Number.isFinite(goal) && goal > 0) {
       shape = Math.max(-0.35, Math.min((v / goal - 1) * 2.5, 1.1));
     }
+    const preview = !!m.preview_effects;
     const sleepV = m.sleep_entity ? this._numeric(this.hass.states[m.sleep_entity]) : NaN;
     const tiredBelow = m.tired_below ?? 60;
-    const tired =
+    let tired =
       Number.isFinite(sleepV) && sleepV < tiredBelow
         ? Math.min((tiredBelow - sleepV) / 45 + 0.15, 1)
         : 0;
@@ -742,10 +812,14 @@ export class HealthCard extends LitElement {
       ? this._numeric(this.hass.states[m.temperature_entity])
       : NaN;
     const feverFrom = m.fever_from ?? 37.8;
-    const fever =
+    let fever =
       Number.isFinite(tempV) && tempV >= feverFrom
         ? Math.min((tempV - feverFrom) / 2 + 0.4, 1)
         : 0;
+    if (preview) {
+      tired = Math.max(tired, 0.85);
+      fever = Math.max(fever, 0.75);
+    }
     const scoreV = m.score_entity
       ? this._numeric(this.hass.states[m.score_entity])
       : NaN;
@@ -763,6 +837,8 @@ export class HealthCard extends LitElement {
         : cuffAnchor?.position === 'arm-right'
           ? ('right' as const)
           : undefined;
+    const isImg = !!this._bodyImage(m, shape);
+    const fade = m.fade_figure !== false;
 
     return html`
       <div
@@ -778,48 +854,45 @@ export class HealthCard extends LitElement {
             ${fmtLastUpdated(this.hass, primaryState.last_updated)}
           </div>
         </div>
-        <div class="bodywrap">
-          ${glow > 0 && this._bodyImage(m, shape)
+        <div class="bodywrap" style="--hc-zoom:${m.figure_zoom ?? 1}">
+          ${glow > 0 && isImg
             ? html`<div
                 class="body-glow"
                 style="--hc-glow:${glowColor};opacity:${glow}"
               ></div>`
             : nothing}
           <div
-            class="bodyframe ${m.body_crop === 'upper' ? 'crop-upper' : ''}"
-            style="--hc-frame-ar:${this._frameAspect(m)};--hc-zoom:${m.figure_zoom ?? 1}"
+            class="bodyframe ${m.body_crop === 'upper' ? 'crop-upper' : ''} ${fade
+              ? 'fade'
+              : ''}"
+            style="--hc-frame-ar:${this._frameAspect(m)}"
           >
-            ${this._bodyImage(m, shape)
-              ? html`
-                  ${m.image_remove_black
-                    ? html`<svg class="unblack-defs" aria-hidden="true">
-                        <filter id="hc-unblack">
-                          <feColorMatrix
-                            type="matrix"
-                            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  1.2 1.8 0.7 0 -0.18"
-                          />
-                        </filter>
-                      </svg>`
-                    : nothing}
-                  <img
-                    class="bodyimg"
-                    src=${this._bodyImage(m, shape)!}
-                    style=${m.image_remove_black ? 'filter: url(#hc-unblack)' : ''}
-                    alt=""
-                  />
-                  ${fever > 0
-                    ? html`<div class="body-fever" style="opacity:${fever}"></div>`
-                    : nothing}
-                `
+            ${isImg
+              ? html`<img class="bodyimg" src=${this._bodyImage(m, shape)!} alt="" />`
               : bodyFigure({
                   gender: m.gender ?? 'female',
                   shape,
-                  tired,
-                  fever,
+                  tired: 0,
+                  fever: 0,
                   glow,
                   glowColor,
                   cuff,
                 })}
+            ${fever > 0
+              ? html`<div
+                  class="body-fever"
+                  style="left:${m.fever_x ?? 50}%;top:${m.fever_y ?? 10}%;opacity:${fever}"
+                ></div>`
+              : nothing}
+            ${tired > 0
+              ? html`<div
+                  class="body-tired"
+                  style="left:${m.tired_x ?? 50}%;top:${m.tired_y ?? 11}%;opacity:${0.25 +
+                  tired * 0.6}"
+                >
+                  <span></span><span></span>
+                </div>`
+              : nothing}
           </div>
           ${anchors.map((a, i) => this._renderAnchor(a, i))}
         </div>
@@ -839,15 +912,25 @@ export class HealthCard extends LitElement {
     `;
   }
 
+  /**
+   * Effective figure style. Default is mannequin, but the liquid-glass card
+   * style defaults to the matching glass figures. `svg` draws the silhouette.
+   */
+  private _figStyle(m: MetricConfig): string {
+    if (m.figure_style) return m.figure_style;
+    return this._cardStyle() === 'glass' ? 'glass' : 'mannequin';
+  }
+
   /** Figure image URL for the current weight state, if any is configured. */
   private _bodyImage(m: MetricConfig, shape: number): string | undefined {
     const state = shape < -0.12 ? 'slim' : shape < 0.35 ? 'regular' : 'full';
-    // bundled figure sets (figure_style) take precedence over custom images
-    if (m.figure_style && m.figure_style !== 'svg') {
+    const style = this._figStyle(m);
+    // bundled figure sets take precedence over custom images
+    if (style !== 'svg') {
       const gender = m.gender ?? 'female';
       const weight =
         state === 'slim' ? 'underweight' : state === 'full' ? 'overweight' : 'normal';
-      return `${this._figureBase(m)}${m.figure_style}/${gender}_${weight}.png`;
+      return `${this._figureBase(m)}${style}/${gender}_${weight}.png`;
     }
     if (!m.images) return undefined;
     const preferred =
@@ -878,11 +961,18 @@ export class HealthCard extends LitElement {
     const base = HealthCard.ANCHOR_POS[a.position ?? 'chest'];
     const st = this.hass.states[a.entity];
     if (!base || !st) return nothing;
-    // free x/y placement (percent) overrides the named position
-    let side: 'left' | 'right' =
-      a.x !== undefined && !a.position ? (a.x >= 50 ? 'right' : 'left') : base.side;
-    if (a.flip) side = side === 'right' ? 'left' : 'right';
-    const pos = { x: a.x ?? base.x, y: a.y ?? base.y, side };
+    // `dot` (8-way) wins; otherwise derive left/right from x, honouring flip
+    let dir: string;
+    if (a.dot) {
+      dir = a.dot;
+    } else {
+      let side: 'left' | 'right' =
+        a.x !== undefined && !a.position ? (a.x >= 50 ? 'right' : 'left') : base.side;
+      if (a.flip) side = side === 'right' ? 'left' : 'right';
+      dir = side;
+    }
+    const x = a.x ?? base.x;
+    const y = a.y ?? base.y;
     const color =
       resolveColor(a.color) ?? resolveColor(SERIES_PALETTE[i % SERIES_PALETTE.length])!;
     const v = this._numeric(st);
@@ -898,10 +988,7 @@ export class HealthCard extends LitElement {
           )
         : st.state;
     }
-    return html`<div
-      class="anchor ${pos.side}"
-      style="left:${pos.x}%;top:${pos.y}%;--ac:${color}"
-    >
+    return html`<div class="anchor dot-${dir}" style="left:${x}%;top:${y}%;--ac:${color}">
       <span class="anchor-dot"></span>
       <div class="anchor-chip">
         <span class="anchor-name">${a.name ?? st.attributes.friendly_name ?? ''}</span>
@@ -2151,6 +2238,17 @@ export class HealthCard extends LitElement {
       display: flex;
       justify-content: center;
     }
+    .cycle-phase {
+      text-align: center;
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .cycle-note {
+      text-align: center;
+      font-size: 13px;
+      color: var(--secondary-text-color);
+      margin-top: -2px;
+    }
     .score-bars {
       display: flex;
       flex-direction: column;
@@ -2205,30 +2303,37 @@ export class HealthCard extends LitElement {
       --hc-body-bottom: color-mix(in srgb, var(--hc-accent) 12%, var(--hc-card-bg));
       --hc-body-stroke: color-mix(in srgb, var(--hc-accent) 26%, transparent);
     }
+    /* zoom scales the whole figure by widening the wrap (capped at the tile
+       width) so the figure never gets clipped horizontally — only the bottom
+       edge is ever softened, via a mask. */
     .bodywrap {
       position: relative;
-      width: min(240px, 92%);
+      width: min(calc(215px * var(--hc-zoom, 1)), 96%);
       margin: 0 auto;
+      transition: width 0.2s ease;
     }
-    /* the frame clips the figure for crop/zoom; anchors live outside it so
-       their chips can overflow without being cut off. full crop = natural
-       flow (no assumption about the image aspect ratio); upper crop clips to
-       a wide band showing head + torso. */
     .bodyframe {
       position: relative;
       width: 100%;
-      overflow: hidden;
     }
     .bodyfig,
     .bodyimg {
       width: 100%;
       height: auto;
       display: block;
-      transform: scale(var(--hc-zoom, 1));
-      transform-origin: 50% 7%;
     }
+    /* full crop: natural flow, no clipping. only a soft bottom fade. */
+    .bodyframe.fade:not(.crop-upper) {
+      -webkit-mask-image: linear-gradient(to bottom, #000 84%, transparent 99%);
+      mask-image: linear-gradient(to bottom, #000 84%, transparent 99%);
+    }
+    /* upper crop: shorten the frame and fade the lower edge softly (no hard
+       cut). the figure is top-aligned so head + torso show. */
     .bodyframe.crop-upper {
-      aspect-ratio: var(--hc-frame-ar, 1.2);
+      aspect-ratio: var(--hc-frame-ar, 1.25);
+      overflow: hidden;
+      -webkit-mask-image: linear-gradient(to bottom, #000 68%, transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 68%, transparent 100%);
     }
     .bodyframe.crop-upper .bodyfig,
     .bodyframe.crop-upper .bodyimg {
@@ -2254,16 +2359,35 @@ export class HealthCard extends LitElement {
     }
     .body-fever {
       position: absolute;
-      top: 0;
-      left: 20%;
-      right: 20%;
-      height: 42%;
+      width: 52%;
+      aspect-ratio: 1.1;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
       background: radial-gradient(
         closest-side,
         color-mix(in srgb, var(--error-color, #e53935) 45%, transparent),
         transparent
       );
       pointer-events: none;
+    }
+    .body-tired {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      display: flex;
+      gap: 5%;
+      width: 20%;
+      pointer-events: none;
+    }
+    .body-tired span {
+      flex: 1;
+      aspect-ratio: 1.7;
+      border-radius: 50%;
+      background: radial-gradient(
+        closest-side,
+        color-mix(in srgb, #3a2a4a 85%, transparent),
+        transparent
+      );
+      filter: blur(1px);
     }
     .bodyshape .solid {
       stroke: var(--hc-body-stroke);
@@ -2302,27 +2426,29 @@ export class HealthCard extends LitElement {
       --hc-body-bottom: rgba(255, 255, 255, 0.06);
       --hc-body-stroke: #fff;
     }
+    /* the anchor is pinned to the point (x/y); the dot sits at that point and
+       the chip is offset to one of 8 directions via a translate */
     .anchor {
       position: absolute;
-      transform: translate(-50%, -50%);
-      display: flex;
-      align-items: center;
-      gap: 6px;
       pointer-events: none;
-    }
-    .anchor.left {
-      flex-direction: row-reverse;
+      --gap: 9px;
     }
     .anchor-dot {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 10px;
       height: 10px;
       border-radius: 50%;
-      flex: none;
+      transform: translate(-50%, -50%);
       background: var(--ac);
       border: 2px solid var(--hc-card-bg);
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
     }
     .anchor-chip {
+      position: absolute;
+      top: 0;
+      left: 0;
       background: var(--hc-card-bg);
       border-radius: 10px;
       padding: 4px 9px;
@@ -2331,6 +2457,31 @@ export class HealthCard extends LitElement {
       flex-direction: column;
       line-height: 1.25;
       white-space: nowrap;
+    }
+    /* dot-<dir> = dot is on that side of the chip → chip offset the other way */
+    .anchor.dot-right .anchor-chip {
+      transform: translate(calc(-100% - var(--gap)), -50%);
+    }
+    .anchor.dot-left .anchor-chip {
+      transform: translate(var(--gap), -50%);
+    }
+    .anchor.dot-bottom .anchor-chip {
+      transform: translate(-50%, calc(-100% - var(--gap)));
+    }
+    .anchor.dot-top .anchor-chip {
+      transform: translate(-50%, var(--gap));
+    }
+    .anchor.dot-bottom-right .anchor-chip {
+      transform: translate(calc(-100% - var(--gap)), calc(-100% - var(--gap)));
+    }
+    .anchor.dot-bottom-left .anchor-chip {
+      transform: translate(var(--gap), calc(-100% - var(--gap)));
+    }
+    .anchor.dot-top-right .anchor-chip {
+      transform: translate(calc(-100% - var(--gap)), var(--gap));
+    }
+    .anchor.dot-top-left .anchor-chip {
+      transform: translate(var(--gap), var(--gap));
     }
     .anchor-name {
       font-size: 10px;

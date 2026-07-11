@@ -79,7 +79,22 @@ const LABELS: Record<string, Record<string, string>> = {
     bc_upper: 'Upper body',
     figure_zoom: 'Zoom',
     tired_below: 'Eye shadows below score',
-    flip: 'Label on other side',
+    dot: 'Dot position',
+    dot_left: 'left',
+    dot_right: 'right',
+    dot_top: 'top',
+    dot_bottom: 'bottom',
+    tired_x: 'Eye shadows X %',
+    tired_y: 'Eye shadows Y %',
+    fever_x: 'Fever X %',
+    fever_y: 'Fever Y %',
+    preview_effects: 'Preview fever + eye shadows',
+    fade_figure: 'Fade figure bottom',
+    sec_cycle: 'Cycle',
+    cycle_length: 'Cycle length (days)',
+    period_length: 'Period length (days)',
+    ovulation_day: 'Ovulation day',
+    phase_entity: 'Phase sensor (optional)',
     type: 'Type',
     entity: 'Entity',
     entity2: 'Second entity (e.g. diastolic)',
@@ -174,7 +189,22 @@ const LABELS: Record<string, Record<string, string>> = {
     bc_upper: 'Oberkörper',
     figure_zoom: 'Zoom',
     tired_below: 'Augenringe unter Score',
-    flip: 'Label auf andere Seite',
+    dot: 'Punkt-Position',
+    dot_left: 'links',
+    dot_right: 'rechts',
+    dot_top: 'oben',
+    dot_bottom: 'unten',
+    tired_x: 'Augenringe X %',
+    tired_y: 'Augenringe Y %',
+    fever_x: 'Fieber X %',
+    fever_y: 'Fieber Y %',
+    preview_effects: 'Fieber + Augenringe testen',
+    fade_figure: 'Figur unten ausblenden',
+    sec_cycle: 'Zyklus',
+    cycle_length: 'Zykluslänge (Tage)',
+    period_length: 'Periodenlänge (Tage)',
+    ovulation_day: 'Eisprung-Tag',
+    phase_entity: 'Phasen-Sensor (optional)',
     type: 'Typ',
     entity: 'Entität',
     entity2: 'Zweite Entität (z. B. diastolisch)',
@@ -481,8 +511,39 @@ export class HealthCardEditor extends LitElement {
                     name: 'fever_from',
                     selector: { number: { mode: 'box', step: 'any' } },
                   },
+                  { name: 'tired_x', selector: { number: { min: 0, max: 100, mode: 'box' } } },
+                  { name: 'tired_y', selector: { number: { min: 0, max: 100, mode: 'box' } } },
+                  { name: 'fever_x', selector: { number: { min: 0, max: 100, mode: 'box' } } },
+                  { name: 'fever_y', selector: { number: { min: 0, max: 100, mode: 'box' } } },
                 ],
               },
+              { name: 'preview_effects', selector: { boolean: {} } },
+              { name: 'fade_figure', selector: { boolean: {} } },
+            ]),
+          ]
+        : []),
+      ...(type === 'cycle'
+        ? [
+            section('sec_cycle', 'mdi:calendar-heart', [
+              {
+                type: 'grid',
+                name: '',
+                schema: [
+                  {
+                    name: 'cycle_length',
+                    selector: { number: { min: 15, max: 60, mode: 'box' } },
+                  },
+                  {
+                    name: 'period_length',
+                    selector: { number: { min: 1, max: 15, mode: 'box' } },
+                  },
+                  {
+                    name: 'ovulation_day',
+                    selector: { number: { min: 1, max: 45, mode: 'box' } },
+                  },
+                ],
+              },
+              { name: 'phase_entity', selector: { entity: {} } },
             ]),
           ]
         : []),
@@ -621,10 +682,27 @@ export class HealthCardEditor extends LitElement {
           },
           { name: 'anchor_x', selector: { number: { min: 0, max: 100, mode: 'box' } } },
           { name: 'anchor_y', selector: { number: { min: 0, max: 100, mode: 'box' } } },
+          {
+            name: 'dot',
+            selector: {
+              select: {
+                mode: 'dropdown',
+                options: [
+                  { value: 'left', label: '← ' + this._label('dot_left') },
+                  { value: 'right', label: '→ ' + this._label('dot_right') },
+                  { value: 'top', label: '↑ ' + this._label('dot_top') },
+                  { value: 'bottom', label: '↓ ' + this._label('dot_bottom') },
+                  { value: 'top-left', label: '↖' },
+                  { value: 'top-right', label: '↗' },
+                  { value: 'bottom-left', label: '↙' },
+                  { value: 'bottom-right', label: '↘' },
+                ],
+              },
+            },
+          },
         ],
       },
       { name: 'entity2', selector: { entity: {} } },
-      { name: 'flip', selector: { boolean: {} } },
     ];
   }
 
@@ -672,7 +750,7 @@ export class HealthCardEditor extends LitElement {
     if (v.color) anchor.color = v.color;
     if (v.anchor_x !== undefined && v.anchor_x !== null) anchor.x = v.anchor_x;
     if (v.anchor_y !== undefined && v.anchor_y !== null) anchor.y = v.anchor_y;
-    if (v.flip) anchor.flip = true;
+    if (v.dot) anchor.dot = v.dot;
     const metrics = [...this._config.metrics];
     const anchors = [...(metrics[mi].anchors ?? [])];
     anchors[ai] = anchor as unknown as BodyAnchor;

@@ -340,6 +340,50 @@ export function scoreScallop(
   </svg>`;
 }
 
+export interface CycleSegment {
+  /** start day (1-based, inclusive) */
+  from: number;
+  /** end day (inclusive) */
+  to: number;
+  color: string;
+}
+
+/**
+ * Menstrual-cycle ring: colored phase arcs around a donut with a marker at
+ * the current day. Day 1 starts at the top and runs clockwise.
+ */
+export function cycleRing(
+  day: number,
+  length: number,
+  segments: CycleSegment[]
+): TemplateResult {
+  const R = 80;
+  const width = 15;
+  const C = 2 * Math.PI * R;
+  const segEls = segments.map((s) => {
+    const span = Math.max(0, s.to - (s.from - 1));
+    const len = (C * span) / length;
+    const offset = (C * (s.from - 1)) / length;
+    return svg`<circle cx="100" cy="100" r=${R} fill="none" stroke=${s.color}
+      stroke-width=${width} stroke-linecap="butt"
+      stroke-dasharray="${Math.max(len - 1.5, 0.1)} ${C}" stroke-dashoffset=${-offset}
+      transform="rotate(-90 100 100)"/>`;
+  });
+  // marker at the middle of the current day
+  const a = ((day - 0.5) / length) * 2 * Math.PI - Math.PI / 2;
+  const mx = 100 + Math.cos(a) * R;
+  const my = 100 + Math.sin(a) * R;
+  return html`<svg class="scorering" viewBox="0 0 200 200" aria-hidden="true">
+    <circle cx="100" cy="100" r=${R} fill="none"
+      stroke="color-mix(in srgb, var(--primary-text-color) 8%, transparent)"
+      stroke-width=${width}/>
+    ${segEls}
+    <circle cx=${mx} cy=${my} r="10" fill="var(--hc-card-bg)"
+      stroke="var(--primary-text-color)" stroke-width="2.5"/>
+    <circle cx=${mx} cy=${my} r="3.5" fill="var(--primary-text-color)"/>
+  </svg>`;
+}
+
 /** Picks the score graphic matching the active card style. */
 export function scoreGraphic(
   variant: string,
