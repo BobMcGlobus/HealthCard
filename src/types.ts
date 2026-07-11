@@ -176,6 +176,8 @@ export interface MetricConfig {
   figure_zoom?: number;
   /** Body metrics: value labels pinned to body parts */
   anchors?: BodyAnchor[];
+  /** Body metrics: label chip background opacity (0-1, default 1) */
+  label_opacity?: number;
   /**
    * Body metrics: use a bundled rendered figure set instead of the SVG.
    * 'svg' (default) draws the built-in silhouette.

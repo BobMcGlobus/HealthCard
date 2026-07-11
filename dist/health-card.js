@@ -1433,6 +1433,7 @@ const Kt = Object.keys(H), qt = ["body_composition", "nutrition"], xe = {
     fever_y: "Fever Y %",
     preview_effects: "Preview fever + eye shadows",
     fade_figure: "Fade figure bottom",
+    label_opacity: "Label opacity",
     sec_cycle: "Cycle",
     cycle_length: "Cycle length (days)",
     period_length: "Period length (days)",
@@ -1543,6 +1544,7 @@ const Kt = Object.keys(H), qt = ["body_composition", "nutrition"], xe = {
     fever_y: "Fieber Y %",
     preview_effects: "Fieber + Augenringe testen",
     fade_figure: "Figur unten ausblenden",
+    label_opacity: "Label-Deckkraft",
     sec_cycle: "Zyklus",
     cycle_length: "Zykluslänge (Tage)",
     period_length: "Periodenlänge (Tage)",
@@ -1831,6 +1833,10 @@ let Z = class extends V {
               { name: "fever_x", selector: { number: { min: 0, max: 100, mode: "box" } } },
               { name: "fever_y", selector: { number: { min: 0, max: 100, mode: "box" } } }
             ]
+          },
+          {
+            name: "label_opacity",
+            selector: { number: { min: 0, max: 1, step: 0.05, mode: "slider" } }
           },
           { name: "preview_effects", selector: { boolean: {} } },
           { name: "fade_figure", selector: { boolean: {} } }
@@ -2253,7 +2259,7 @@ var Zt = Object.defineProperty, Yt = Object.getOwnPropertyDescriptor, z = (r, e,
     (o = r[a]) && (s = (i ? o(e, t, s) : o(s)) || s);
   return i && s && Zt(e, t, s), s;
 };
-const Xt = "0.11.0", Jt = 5 * 60 * 1e3, Qt = 15 * 60 * 1e3, er = ["default", "withings", "glass", "material", "bubble", "mirror"], ae = [
+const Xt = "0.11.1", Jt = 5 * 60 * 1e3, Qt = 15 * 60 * 1e3, er = ["default", "withings", "glass", "material", "bubble", "mirror"], ae = [
   { key: "day", kind: "hour", count: 24 },
   { key: "week", kind: "day", count: 7 },
   { key: "month", kind: "day", count: 30 },
@@ -2750,7 +2756,7 @@ let E = class extends V {
             ${G(this.hass, i.last_updated)}
           </div>
         </div>
-        <div class="bodywrap" style="--hc-zoom:${t.figure_zoom ?? 1}">
+        <div class="bodywrap">
           ${$ > 0 && A ? u`<div
                 class="body-glow"
                 style="--hc-glow:${b};opacity:${$}"
@@ -2759,25 +2765,27 @@ let E = class extends V {
             class="bodyframe ${t.body_crop === "upper" ? "crop-upper" : ""} ${C ? "fade" : ""}"
             style="--hc-frame-ar:${this._frameAspect(t)}"
           >
-            ${A ? u`<img class="bodyimg" src=${this._bodyImage(t, o)} alt="" />` : Pt({
+            <div class="bodystage" style="--hc-zoom:${t.figure_zoom ?? 1}">
+              ${A ? u`<img class="bodyimg" src=${this._bodyImage(t, o)} alt="" />` : Pt({
       gender: t.gender ?? "female",
       shape: o,
       glow: $,
       glowColor: b,
       cuff: y
     })}
-            ${f > 0 ? u`<div
-                  class="body-fever"
-                  style="left:${t.fever_x ?? 50}%;top:${t.fever_y ?? 10}%;opacity:${f}"
-                ></div>` : p}
-            ${l > 0 ? u`<div
-                  class="body-tired"
-                  style="left:${t.tired_x ?? 50}%;top:${t.tired_y ?? 11}%;opacity:${0.25 + l * 0.6}"
-                >
-                  <span></span><span></span>
-                </div>` : p}
+              ${f > 0 ? u`<div
+                    class="body-fever"
+                    style="left:${t.fever_x ?? 50}%;top:${t.fever_y ?? 12}%;opacity:${f}"
+                  ></div>` : p}
+              ${l > 0 ? u`<div
+                    class="body-tired"
+                    style="left:${t.tired_x ?? 50}%;top:${t.tired_y ?? 13}%;opacity:${0.25 + l * 0.6}"
+                  >
+                    <span></span><span></span>
+                  </div>` : p}
+            </div>
           </div>
-          ${v.map((M, N) => this._renderAnchor(M, N))}
+          ${v.map((M, N) => this._renderAnchor(M, N, t))}
         </div>
         <div class="body-foot">
           ${this._renderValue(t, r.type, r.data, i, r.unit, r.precision, !1)}
@@ -2811,12 +2819,12 @@ let E = class extends V {
     return r.images ? (t === "slim" ? r.images.slim : t === "full" ? r.images.full : r.images.regular) ?? r.images.regular ?? r.images.slim ?? r.images.full : void 0;
   }
   /**
-   * Frame aspect ratio (width/height) for the upper-body crop — wider than the
-   * portrait figure so only head + torso stay visible. Full crop ignores this
-   * (natural flow), so a single value works for images and the drawn SVG.
+   * Frame aspect ratio (width/height). The frame is fixed-height so zooming
+   * (a transform on the inner stage) magnifies in place instead of growing
+   * the card. Full fits the whole portrait figure; upper is a wide band.
    */
   _frameAspect(r) {
-    return r.body_crop === "upper" ? 1.25 : 1;
+    return r.body_crop === "upper" ? 1.15 : 0.64;
   }
   /** Base URL for bundled figure images (served next to the card by default). */
   _figureBase(r) {
@@ -2827,31 +2835,35 @@ let E = class extends V {
       return "/figures/";
     }
   }
-  _renderAnchor(r, e) {
-    const t = E.ANCHOR_POS[r.position ?? "chest"], i = this.hass.states[r.entity];
-    if (!t || !i) return p;
-    let s;
+  _renderAnchor(r, e, t) {
+    const i = E.ANCHOR_POS[r.position ?? "chest"], s = this.hass.states[r.entity];
+    if (!i || !s) return p;
+    let a;
     if (r.dot)
-      s = r.dot;
+      a = r.dot;
     else {
-      let l = r.x !== void 0 && !r.position ? r.x >= 50 ? "right" : "left" : t.side;
-      r.flip && (l = l === "right" ? "left" : "right"), s = l;
+      let g = r.x !== void 0 && !r.position ? r.x >= 50 ? "right" : "left" : i.side;
+      r.flip && (g = g === "right" ? "left" : "right"), a = g;
     }
-    const a = r.x ?? t.x, o = r.y ?? t.y, n = D(r.color) ?? D(se[e % se.length]), c = this._numeric(i);
-    let d;
+    const o = r.x ?? i.x, n = r.y ?? i.y, c = D(r.color) ?? D(se[e % se.length]), d = this._numeric(s);
+    let l;
     if (r.entity2) {
-      const l = this._numeric(this.hass.states[r.entity2]);
-      d = `${S(this.hass, c, 0)}/${S(this.hass, l, 0)}`;
+      const g = this._numeric(this.hass.states[r.entity2]);
+      l = `${S(this.hass, d, 0)}/${S(this.hass, g, 0)}`;
     } else
-      d = Number.isFinite(c) ? X(
-        S(this.hass, c),
-        i.attributes.unit_of_measurement ?? ""
-      ) : i.state;
-    return u`<div class="anchor dot-${s}" style="left:${a}%;top:${o}%;--ac:${n}">
+      l = Number.isFinite(d) ? X(
+        S(this.hass, d),
+        s.attributes.unit_of_measurement ?? ""
+      ) : s.state;
+    const h = t.label_opacity ?? 1;
+    return u`<div
+      class="anchor dot-${a}"
+      style="left:${o}%;top:${n}%;--ac:${c};--hc-label-op:${h}"
+    >
       <span class="anchor-dot"></span>
       <div class="anchor-chip">
-        <span class="anchor-name">${r.name ?? i.attributes.friendly_name ?? ""}</span>
-        <span class="anchor-val">${d}</span>
+        <span class="anchor-name">${r.name ?? s.attributes.friendly_name ?? ""}</span>
+        <span class="anchor-val">${l}</span>
       </div>
     </div>`;
   }
@@ -3981,18 +3993,30 @@ E.styles = et`
       --hc-body-bottom: color-mix(in srgb, var(--hc-accent) 12%, var(--hc-card-bg));
       --hc-body-stroke: color-mix(in srgb, var(--hc-accent) 26%, transparent);
     }
-    /* zoom scales the whole figure by widening the wrap (capped at the tile
-       width) so the figure never gets clipped horizontally — only the bottom
-       edge is ever softened, via a mask. */
     .bodywrap {
       position: relative;
-      width: min(calc(215px * var(--hc-zoom, 1)), 96%);
+      width: min(215px, 96%);
       margin: 0 auto;
-      transition: width 0.2s ease;
     }
+    /* fixed-height frame: zoom magnifies the inner stage in place (card height
+       stays constant) and the frame clips the overflow — including the fever /
+       eye-shadow overlays, so they never bleed into the header. */
     .bodyframe {
       position: relative;
       width: 100%;
+      aspect-ratio: var(--hc-frame-ar, 0.64);
+      overflow: hidden;
+    }
+    .bodystage {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      transform: scale(var(--hc-zoom, 1));
+      transform-origin: 50% 6%;
+    }
+    .bodyframe.crop-upper .bodystage {
+      transform-origin: 50% 0;
     }
     .bodyfig,
     .bodyimg {
@@ -4000,24 +4024,14 @@ E.styles = et`
       height: auto;
       display: block;
     }
-    /* full crop: natural flow, no clipping. only a soft bottom fade. */
-    .bodyframe.fade:not(.crop-upper) {
-      -webkit-mask-image: linear-gradient(to bottom, #000 84%, transparent 99%);
-      mask-image: linear-gradient(to bottom, #000 84%, transparent 99%);
+    /* soft bottom fade so the figure blends into the card (no hard edge) */
+    .bodyframe.fade {
+      -webkit-mask-image: linear-gradient(to bottom, #000 86%, transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 86%, transparent 100%);
     }
-    /* upper crop: shorten the frame and fade the lower edge softly (no hard
-       cut). the figure is top-aligned so head + torso show. */
-    .bodyframe.crop-upper {
-      aspect-ratio: var(--hc-frame-ar, 1.25);
-      overflow: hidden;
-      -webkit-mask-image: linear-gradient(to bottom, #000 68%, transparent 100%);
-      mask-image: linear-gradient(to bottom, #000 68%, transparent 100%);
-    }
-    .bodyframe.crop-upper .bodyfig,
-    .bodyframe.crop-upper .bodyimg {
-      position: absolute;
-      top: 0;
-      left: 0;
+    .bodyframe.fade.crop-upper {
+      -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
     }
     .unblack-defs {
       position: absolute;
@@ -4110,6 +4124,7 @@ E.styles = et`
       position: absolute;
       pointer-events: none;
       --gap: 9px;
+      --dg: 2px;
     }
     .anchor-dot {
       position: absolute;
@@ -4127,16 +4142,21 @@ E.styles = et`
       position: absolute;
       top: 0;
       left: 0;
-      background: var(--hc-card-bg);
+      background: color-mix(
+        in srgb,
+        var(--hc-card-bg) calc(var(--hc-label-op, 1) * 100%),
+        transparent
+      );
       border-radius: 10px;
       padding: 4px 9px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.16);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, calc(var(--hc-label-op, 1) * 0.16));
       display: flex;
       flex-direction: column;
       line-height: 1.25;
       white-space: nowrap;
     }
-    /* dot-<dir> = dot is on that side of the chip → chip offset the other way */
+    /* dot-<dir> = dot is on that side of the chip → chip offset the other way.
+       diagonals sit closer (smaller gap) so the label hugs the point. */
     .anchor.dot-right .anchor-chip {
       transform: translate(calc(-100% - var(--gap)), -50%);
     }
@@ -4150,16 +4170,37 @@ E.styles = et`
       transform: translate(-50%, var(--gap));
     }
     .anchor.dot-bottom-right .anchor-chip {
-      transform: translate(calc(-100% - var(--gap)), calc(-100% - var(--gap)));
+      transform: translate(calc(-100% - var(--dg)), calc(-100% - var(--dg)));
     }
     .anchor.dot-bottom-left .anchor-chip {
-      transform: translate(var(--gap), calc(-100% - var(--gap)));
+      transform: translate(var(--dg), calc(-100% - var(--dg)));
     }
     .anchor.dot-top-right .anchor-chip {
-      transform: translate(calc(-100% - var(--gap)), var(--gap));
+      transform: translate(calc(-100% - var(--dg)), var(--dg));
     }
     .anchor.dot-top-left .anchor-chip {
-      transform: translate(var(--gap), var(--gap));
+      transform: translate(var(--dg), var(--dg));
+    }
+    /* design-language chip styling */
+    .s-glass .anchor-chip {
+      border: 1px solid color-mix(in srgb, #fff 30%, transparent);
+      -webkit-backdrop-filter: blur(8px) saturate(1.4);
+      backdrop-filter: blur(8px) saturate(1.4);
+      box-shadow:
+        inset 0 1px 0 color-mix(in srgb, #fff 30%, transparent),
+        0 4px 14px rgba(0, 0, 0, 0.16);
+    }
+    .s-material .anchor-chip {
+      border-radius: 14px;
+      background: color-mix(
+        in srgb,
+        color-mix(in srgb, var(--hc-accent) 16%, var(--hc-card-bg))
+          calc(var(--hc-label-op, 1) * 100%),
+        transparent
+      );
+    }
+    .s-bubble .anchor-chip {
+      border-radius: 14px;
     }
     .anchor-name {
       font-size: 10px;

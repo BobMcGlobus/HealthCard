@@ -33,7 +33,7 @@ import { barChart, cycleRing, lineChart, scoreGraphic } from './charts';
 import type { AxisMark, ChartOpts, CycleSegment } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.11.0';
+const CARD_VERSION = '0.11.1';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
@@ -854,7 +854,7 @@ export class HealthCard extends LitElement {
             ${fmtLastUpdated(this.hass, primaryState.last_updated)}
           </div>
         </div>
-        <div class="bodywrap" style="--hc-zoom:${m.figure_zoom ?? 1}">
+        <div class="bodywrap">
           ${glow > 0 && isImg
             ? html`<div
                 class="body-glow"
@@ -867,34 +867,36 @@ export class HealthCard extends LitElement {
               : ''}"
             style="--hc-frame-ar:${this._frameAspect(m)}"
           >
-            ${isImg
-              ? html`<img class="bodyimg" src=${this._bodyImage(m, shape)!} alt="" />`
-              : bodyFigure({
-                  gender: m.gender ?? 'female',
-                  shape,
-                  tired: 0,
-                  fever: 0,
-                  glow,
-                  glowColor,
-                  cuff,
-                })}
-            ${fever > 0
-              ? html`<div
-                  class="body-fever"
-                  style="left:${m.fever_x ?? 50}%;top:${m.fever_y ?? 10}%;opacity:${fever}"
-                ></div>`
-              : nothing}
-            ${tired > 0
-              ? html`<div
-                  class="body-tired"
-                  style="left:${m.tired_x ?? 50}%;top:${m.tired_y ?? 11}%;opacity:${0.25 +
-                  tired * 0.6}"
-                >
-                  <span></span><span></span>
-                </div>`
-              : nothing}
+            <div class="bodystage" style="--hc-zoom:${m.figure_zoom ?? 1}">
+              ${isImg
+                ? html`<img class="bodyimg" src=${this._bodyImage(m, shape)!} alt="" />`
+                : bodyFigure({
+                    gender: m.gender ?? 'female',
+                    shape,
+                    tired: 0,
+                    fever: 0,
+                    glow,
+                    glowColor,
+                    cuff,
+                  })}
+              ${fever > 0
+                ? html`<div
+                    class="body-fever"
+                    style="left:${m.fever_x ?? 50}%;top:${m.fever_y ?? 12}%;opacity:${fever}"
+                  ></div>`
+                : nothing}
+              ${tired > 0
+                ? html`<div
+                    class="body-tired"
+                    style="left:${m.tired_x ?? 50}%;top:${m.tired_y ?? 13}%;opacity:${0.25 +
+                    tired * 0.6}"
+                  >
+                    <span></span><span></span>
+                  </div>`
+                : nothing}
+            </div>
           </div>
-          ${anchors.map((a, i) => this._renderAnchor(a, i))}
+          ${anchors.map((a, i) => this._renderAnchor(a, i, m))}
         </div>
         <div class="body-foot">
           ${this._renderValue(m, c.type, c.data, primaryState, c.unit, c.precision, false)}
@@ -939,12 +941,12 @@ export class HealthCard extends LitElement {
   }
 
   /**
-   * Frame aspect ratio (width/height) for the upper-body crop — wider than the
-   * portrait figure so only head + torso stay visible. Full crop ignores this
-   * (natural flow), so a single value works for images and the drawn SVG.
+   * Frame aspect ratio (width/height). The frame is fixed-height so zooming
+   * (a transform on the inner stage) magnifies in place instead of growing
+   * the card. Full fits the whole portrait figure; upper is a wide band.
    */
   private _frameAspect(m: MetricConfig): number {
-    return m.body_crop === 'upper' ? 1.25 : 1;
+    return m.body_crop === 'upper' ? 1.15 : 0.64;
   }
 
   /** Base URL for bundled figure images (served next to the card by default). */
@@ -957,7 +959,11 @@ export class HealthCard extends LitElement {
     }
   }
 
-  private _renderAnchor(a: BodyAnchor, i: number): TemplateResult | typeof nothing {
+  private _renderAnchor(
+    a: BodyAnchor,
+    i: number,
+    m: MetricConfig
+  ): TemplateResult | typeof nothing {
     const base = HealthCard.ANCHOR_POS[a.position ?? 'chest'];
     const st = this.hass.states[a.entity];
     if (!base || !st) return nothing;
@@ -988,7 +994,11 @@ export class HealthCard extends LitElement {
           )
         : st.state;
     }
-    return html`<div class="anchor dot-${dir}" style="left:${x}%;top:${y}%;--ac:${color}">
+    const op = m.label_opacity ?? 1;
+    return html`<div
+      class="anchor dot-${dir}"
+      style="left:${x}%;top:${y}%;--ac:${color};--hc-label-op:${op}"
+    >
       <span class="anchor-dot"></span>
       <div class="anchor-chip">
         <span class="anchor-name">${a.name ?? st.attributes.friendly_name ?? ''}</span>
@@ -2303,18 +2313,30 @@ export class HealthCard extends LitElement {
       --hc-body-bottom: color-mix(in srgb, var(--hc-accent) 12%, var(--hc-card-bg));
       --hc-body-stroke: color-mix(in srgb, var(--hc-accent) 26%, transparent);
     }
-    /* zoom scales the whole figure by widening the wrap (capped at the tile
-       width) so the figure never gets clipped horizontally — only the bottom
-       edge is ever softened, via a mask. */
     .bodywrap {
       position: relative;
-      width: min(calc(215px * var(--hc-zoom, 1)), 96%);
+      width: min(215px, 96%);
       margin: 0 auto;
-      transition: width 0.2s ease;
     }
+    /* fixed-height frame: zoom magnifies the inner stage in place (card height
+       stays constant) and the frame clips the overflow — including the fever /
+       eye-shadow overlays, so they never bleed into the header. */
     .bodyframe {
       position: relative;
       width: 100%;
+      aspect-ratio: var(--hc-frame-ar, 0.64);
+      overflow: hidden;
+    }
+    .bodystage {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      transform: scale(var(--hc-zoom, 1));
+      transform-origin: 50% 6%;
+    }
+    .bodyframe.crop-upper .bodystage {
+      transform-origin: 50% 0;
     }
     .bodyfig,
     .bodyimg {
@@ -2322,24 +2344,14 @@ export class HealthCard extends LitElement {
       height: auto;
       display: block;
     }
-    /* full crop: natural flow, no clipping. only a soft bottom fade. */
-    .bodyframe.fade:not(.crop-upper) {
-      -webkit-mask-image: linear-gradient(to bottom, #000 84%, transparent 99%);
-      mask-image: linear-gradient(to bottom, #000 84%, transparent 99%);
+    /* soft bottom fade so the figure blends into the card (no hard edge) */
+    .bodyframe.fade {
+      -webkit-mask-image: linear-gradient(to bottom, #000 86%, transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 86%, transparent 100%);
     }
-    /* upper crop: shorten the frame and fade the lower edge softly (no hard
-       cut). the figure is top-aligned so head + torso show. */
-    .bodyframe.crop-upper {
-      aspect-ratio: var(--hc-frame-ar, 1.25);
-      overflow: hidden;
-      -webkit-mask-image: linear-gradient(to bottom, #000 68%, transparent 100%);
-      mask-image: linear-gradient(to bottom, #000 68%, transparent 100%);
-    }
-    .bodyframe.crop-upper .bodyfig,
-    .bodyframe.crop-upper .bodyimg {
-      position: absolute;
-      top: 0;
-      left: 0;
+    .bodyframe.fade.crop-upper {
+      -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
     }
     .unblack-defs {
       position: absolute;
@@ -2432,6 +2444,7 @@ export class HealthCard extends LitElement {
       position: absolute;
       pointer-events: none;
       --gap: 9px;
+      --dg: 2px;
     }
     .anchor-dot {
       position: absolute;
@@ -2449,16 +2462,21 @@ export class HealthCard extends LitElement {
       position: absolute;
       top: 0;
       left: 0;
-      background: var(--hc-card-bg);
+      background: color-mix(
+        in srgb,
+        var(--hc-card-bg) calc(var(--hc-label-op, 1) * 100%),
+        transparent
+      );
       border-radius: 10px;
       padding: 4px 9px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.16);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, calc(var(--hc-label-op, 1) * 0.16));
       display: flex;
       flex-direction: column;
       line-height: 1.25;
       white-space: nowrap;
     }
-    /* dot-<dir> = dot is on that side of the chip → chip offset the other way */
+    /* dot-<dir> = dot is on that side of the chip → chip offset the other way.
+       diagonals sit closer (smaller gap) so the label hugs the point. */
     .anchor.dot-right .anchor-chip {
       transform: translate(calc(-100% - var(--gap)), -50%);
     }
@@ -2472,16 +2490,37 @@ export class HealthCard extends LitElement {
       transform: translate(-50%, var(--gap));
     }
     .anchor.dot-bottom-right .anchor-chip {
-      transform: translate(calc(-100% - var(--gap)), calc(-100% - var(--gap)));
+      transform: translate(calc(-100% - var(--dg)), calc(-100% - var(--dg)));
     }
     .anchor.dot-bottom-left .anchor-chip {
-      transform: translate(var(--gap), calc(-100% - var(--gap)));
+      transform: translate(var(--dg), calc(-100% - var(--dg)));
     }
     .anchor.dot-top-right .anchor-chip {
-      transform: translate(calc(-100% - var(--gap)), var(--gap));
+      transform: translate(calc(-100% - var(--dg)), var(--dg));
     }
     .anchor.dot-top-left .anchor-chip {
-      transform: translate(var(--gap), var(--gap));
+      transform: translate(var(--dg), var(--dg));
+    }
+    /* design-language chip styling */
+    .s-glass .anchor-chip {
+      border: 1px solid color-mix(in srgb, #fff 30%, transparent);
+      -webkit-backdrop-filter: blur(8px) saturate(1.4);
+      backdrop-filter: blur(8px) saturate(1.4);
+      box-shadow:
+        inset 0 1px 0 color-mix(in srgb, #fff 30%, transparent),
+        0 4px 14px rgba(0, 0, 0, 0.16);
+    }
+    .s-material .anchor-chip {
+      border-radius: 14px;
+      background: color-mix(
+        in srgb,
+        color-mix(in srgb, var(--hc-accent) 16%, var(--hc-card-bg))
+          calc(var(--hc-label-op, 1) * 100%),
+        transparent
+      );
+    }
+    .s-bubble .anchor-chip {
+      border-radius: 14px;
     }
     .anchor-name {
       font-size: 10px;
