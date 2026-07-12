@@ -2203,7 +2203,7 @@ var Vt = Object.defineProperty, Wt = Object.getOwnPropertyDescriptor, P = (t, e,
     (a = t[o]) && (s = (i ? a(e, r, s) : a(s)) || s);
   return i && s && Vt(e, r, s), s;
 };
-const qt = "0.12.0", Kt = 5 * 60 * 1e3, Yt = 15 * 60 * 1e3, Zt = ["default", "withings", "glass", "material", "bubble", "mirror"], ne = [
+const qt = "0.12.1", Kt = 5 * 60 * 1e3, Yt = 15 * 60 * 1e3, Zt = ["default", "withings", "glass", "material", "bubble", "mirror"], ne = [
   { key: "day", kind: "hour", count: 24 },
   { key: "week", kind: "day", count: 7 },
   { key: "month", kind: "day", count: 30 },
@@ -2725,7 +2725,7 @@ let M = class extends W {
                 alt=""
               />
             </div>
-            ${m && r.body_crop !== "upper" ? p`<div class="body-fade"></div>` : u}
+            ${m ? p`<div class="body-fade"></div>` : u}
           </div>
           ${b > 0 ? p`<div
                 class="body-fever"
@@ -3507,6 +3507,7 @@ M.styles = Qe`
     }
     .s-mirror .metric:hover {
       background: #0d0d0d;
+      --hc-tile-bg: #0d0d0d;
     }
     .s-mirror .title,
     .s-mirror .name,
@@ -3623,7 +3624,10 @@ M.styles = Qe`
       transition: background 0.15s ease;
     }
     .metric:hover {
+      /* keep the fade overlay (var consumer) in sync with the hover tint so
+         no sharp rectangle shows inside the tile */
       background: color-mix(in srgb, var(--primary-text-color) 7%, var(--hc-card-bg));
+      --hc-tile-bg: color-mix(in srgb, var(--primary-text-color) 7%, var(--hc-card-bg));
     }
     .metric.noclick {
       cursor: default;
@@ -3940,7 +3944,12 @@ M.styles = Qe`
       gap: 6px 10px;
     }
 
-    /* ---- body / avatar tile ------------------------------------------- */
+    /* ---- body / avatar tile -------------------------------------------
+       the tile clips ONLY at its bottom edge: the figure and glows may spill
+       over the top and the sides, but never onto whatever sits below */
+    .body-metric {
+      clip-path: inset(-80% -80% 0 -80%);
+    }
     .bodywrap {
       position: relative;
       width: min(300px, 100%);
@@ -3957,13 +3966,6 @@ M.styles = Qe`
       width: 100%;
       aspect-ratio: var(--hc-frame-ar, 0.68);
     }
-    .bodyframe.crop-upper {
-      overflow: hidden;
-    }
-    .bodyframe.fade.crop-upper {
-      -webkit-mask-image: linear-gradient(to bottom, #000 66%, transparent 100%);
-      mask-image: linear-gradient(to bottom, #000 66%, transparent 100%);
-    }
     .bodystage {
       position: absolute;
       inset: 0;
@@ -3979,8 +3981,14 @@ M.styles = Qe`
       object-position: 50% 0;
       display: block;
     }
+    /* upper crop: full-width figure, the lower body melts into the fade —
+       no hard clipping here either, the fist may rise above the frame */
+    .bodyframe.crop-upper .bodyimg {
+      height: auto;
+      object-fit: unset;
+    }
     /* soft gradient overlay: covers the lowest part of the figure (even when
-       it overflows the frame slightly) without clipping top or sides */
+       it overflows the frame) without clipping top or sides */
     .body-fade {
       position: absolute;
       left: -14%;
@@ -3989,6 +3997,11 @@ M.styles = Qe`
       height: 46%;
       background: linear-gradient(to top, var(--hc-tile-bg) 40%, transparent);
       pointer-events: none;
+    }
+    .bodyframe.crop-upper .body-fade {
+      bottom: -75%;
+      height: 130%;
+      background: linear-gradient(to top, var(--hc-tile-bg) 68%, transparent);
     }
     .unblack-defs {
       position: absolute;
@@ -4145,6 +4158,8 @@ M.styles = Qe`
       flex-direction: column;
       align-items: center;
       gap: 4px;
+      /* lift the value above the (absolutely positioned) figure and fade */
+      position: relative;
     }
     .body-foot .value {
       font-size: 24px;

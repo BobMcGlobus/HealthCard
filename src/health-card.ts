@@ -32,7 +32,7 @@ import { barChart, cycleRing, lineChart, scoreGraphic } from './charts';
 import type { AxisMark, ChartOpts, CycleSegment } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.12.0';
+const CARD_VERSION = '0.12.1';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
@@ -880,9 +880,7 @@ export class HealthCard extends LitElement {
                 alt=""
               />
             </div>
-            ${fade && m.body_crop !== 'upper'
-              ? html`<div class="body-fade"></div>`
-              : nothing}
+            ${fade ? html`<div class="body-fade"></div>` : nothing}
           </div>
           ${fever > 0
             ? html`<div
@@ -1880,6 +1878,7 @@ export class HealthCard extends LitElement {
     }
     .s-mirror .metric:hover {
       background: #0d0d0d;
+      --hc-tile-bg: #0d0d0d;
     }
     .s-mirror .title,
     .s-mirror .name,
@@ -1996,7 +1995,10 @@ export class HealthCard extends LitElement {
       transition: background 0.15s ease;
     }
     .metric:hover {
+      /* keep the fade overlay (var consumer) in sync with the hover tint so
+         no sharp rectangle shows inside the tile */
       background: color-mix(in srgb, var(--primary-text-color) 7%, var(--hc-card-bg));
+      --hc-tile-bg: color-mix(in srgb, var(--primary-text-color) 7%, var(--hc-card-bg));
     }
     .metric.noclick {
       cursor: default;
@@ -2313,7 +2315,12 @@ export class HealthCard extends LitElement {
       gap: 6px 10px;
     }
 
-    /* ---- body / avatar tile ------------------------------------------- */
+    /* ---- body / avatar tile -------------------------------------------
+       the tile clips ONLY at its bottom edge: the figure and glows may spill
+       over the top and the sides, but never onto whatever sits below */
+    .body-metric {
+      clip-path: inset(-80% -80% 0 -80%);
+    }
     .bodywrap {
       position: relative;
       width: min(300px, 100%);
@@ -2330,13 +2337,6 @@ export class HealthCard extends LitElement {
       width: 100%;
       aspect-ratio: var(--hc-frame-ar, 0.68);
     }
-    .bodyframe.crop-upper {
-      overflow: hidden;
-    }
-    .bodyframe.fade.crop-upper {
-      -webkit-mask-image: linear-gradient(to bottom, #000 66%, transparent 100%);
-      mask-image: linear-gradient(to bottom, #000 66%, transparent 100%);
-    }
     .bodystage {
       position: absolute;
       inset: 0;
@@ -2352,8 +2352,14 @@ export class HealthCard extends LitElement {
       object-position: 50% 0;
       display: block;
     }
+    /* upper crop: full-width figure, the lower body melts into the fade —
+       no hard clipping here either, the fist may rise above the frame */
+    .bodyframe.crop-upper .bodyimg {
+      height: auto;
+      object-fit: unset;
+    }
     /* soft gradient overlay: covers the lowest part of the figure (even when
-       it overflows the frame slightly) without clipping top or sides */
+       it overflows the frame) without clipping top or sides */
     .body-fade {
       position: absolute;
       left: -14%;
@@ -2362,6 +2368,11 @@ export class HealthCard extends LitElement {
       height: 46%;
       background: linear-gradient(to top, var(--hc-tile-bg) 40%, transparent);
       pointer-events: none;
+    }
+    .bodyframe.crop-upper .body-fade {
+      bottom: -75%;
+      height: 130%;
+      background: linear-gradient(to top, var(--hc-tile-bg) 68%, transparent);
     }
     .unblack-defs {
       position: absolute;
@@ -2518,6 +2529,8 @@ export class HealthCard extends LitElement {
       flex-direction: column;
       align-items: center;
       gap: 4px;
+      /* lift the value above the (absolutely positioned) figure and fade */
+      position: relative;
     }
     .body-foot .value {
       font-size: 24px;
