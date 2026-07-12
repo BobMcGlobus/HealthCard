@@ -244,28 +244,6 @@ const config = {
     },
     {
       type: 'body',
-      entity: 'sensor.gewicht',
-      gender: 'male',
-      figure_style: 'svg',
-      goal: 'sensor.zielgewicht',
-      start: 'sensor.startgewicht',
-      score_entity: 'sensor.gesundheitsscore',
-      sleep_entity: 'sensor.schlafwert',
-      temperature_entity: 'sensor.koerpertemperatur',
-      anchors: [
-        { entity: 'sensor.puls', position: 'chest', name: 'Puls' },
-        {
-          entity: 'sensor.blutdruck_sys',
-          entity2: 'sensor.blutdruck_dia',
-          position: 'arm-right',
-          name: 'Blutdruck',
-        },
-        { entity: 'sensor.fettanteil', position: 'belly', name: 'Fett' },
-        { entity: 'sensor.muskelmasse', position: 'arm-left', name: 'Muskeln' },
-      ],
-    },
-    {
-      type: 'body',
       name: 'Körper (Bilder)',
       entity: 'sensor.gewicht',
       gender: 'male',
@@ -389,7 +367,7 @@ document.getElementById('style').addEventListener('click', () => {
 });
 
 const bodyImgMetric = () => current.metrics.find((m) => m.name === 'Körper (Bilder)');
-const FIGURES = ['mannequin', 'pixar', 'glass', 'flat', 'svg'];
+const FIGURES = ['mannequin', 'pixar', 'glass', 'flat'];
 document.getElementById('figure').addEventListener('click', () => {
   const cur = bodyImgMetric().figure_style ?? 'mannequin';
   const next = FIGURES[(FIGURES.indexOf(cur) + 1) % FIGURES.length];

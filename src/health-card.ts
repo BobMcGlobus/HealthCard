@@ -16,7 +16,6 @@ import type {
 } from './types';
 import { BREAKDOWN_PALETTE, PRESETS, SERIES_PALETTE, resolveColor } from './presets';
 import type { MetricPreset } from './presets';
-import { bodyFigure } from './body';
 import { lang, t } from './i18n';
 import { fmtDuration, fmtLastUpdated, fmtNumber, joinUnit } from './format';
 import {
@@ -33,7 +32,7 @@ import { barChart, cycleRing, lineChart, scoreGraphic } from './charts';
 import type { AxisMark, ChartOpts, CycleSegment } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.11.2';
+const CARD_VERSION = '0.12.0';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
@@ -830,14 +829,6 @@ export class HealthCard extends LitElement {
       : 'transparent';
 
     const anchors = (m.anchors ?? []).filter((a) => this.hass.states[a.entity]);
-    const cuffAnchor = anchors.find((a) => a.entity2 && a.position?.startsWith('arm'));
-    const cuff =
-      cuffAnchor?.position === 'arm-left'
-        ? ('left' as const)
-        : cuffAnchor?.position === 'arm-right'
-          ? ('right' as const)
-          : undefined;
-    const isImg = !!this._bodyImage(m, shape);
     const fade = m.fade_figure !== false;
 
     return html`
@@ -855,12 +846,44 @@ export class HealthCard extends LitElement {
           </div>
         </div>
         <div class="bodywrap">
-          ${glow > 0 && isImg
+          ${glow > 0
             ? html`<div
                 class="body-glow"
                 style="--hc-glow:${glowColor};opacity:${glow}"
               ></div>`
             : nothing}
+          <div
+            class="bodyframe ${m.body_crop === 'upper' ? 'crop-upper' : ''} ${fade
+              ? 'fade'
+              : ''}"
+            style="--hc-frame-ar:${this._frameAspect(m)}"
+          >
+            <div
+              class="bodystage"
+              style="--hc-zoom:${m.figure_zoom ?? 1};--hc-oy:${m.figure_offset_y ??
+              -3}%;--hc-ox:${m.figure_offset_x ?? 0}%"
+            >
+              ${m.image_remove_black
+                ? html`<svg class="unblack-defs" aria-hidden="true">
+                    <filter id="hc-unblack">
+                      <feColorMatrix
+                        type="matrix"
+                        values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  1.2 1.8 0.7 0 -0.18"
+                      />
+                    </filter>
+                  </svg>`
+                : nothing}
+              <img
+                class="bodyimg"
+                src=${this._bodyImage(m, shape)}
+                style=${m.image_remove_black ? 'filter: url(#hc-unblack)' : ''}
+                alt=""
+              />
+            </div>
+            ${fade && m.body_crop !== 'upper'
+              ? html`<div class="body-fade"></div>`
+              : nothing}
+          </div>
           ${fever > 0
             ? html`<div
                 class="body-fever"
@@ -876,30 +899,6 @@ export class HealthCard extends LitElement {
                 <span></span><span></span>
               </div>`
             : nothing}
-          <div
-            class="bodyframe ${m.body_crop === 'upper' ? 'crop-upper' : ''} ${fade
-              ? 'fade'
-              : ''}"
-            style="--hc-frame-ar:${this._frameAspect(m)}"
-          >
-            <div
-              class="bodystage"
-              style="--hc-zoom:${m.figure_zoom ?? 1};--hc-oy:${m.figure_offset_y ??
-              (isImg ? -3 : 0)}%"
-            >
-              ${isImg
-                ? html`<img class="bodyimg" src=${this._bodyImage(m, shape)!} alt="" />`
-                : bodyFigure({
-                    gender: m.gender ?? 'female',
-                    shape,
-                    tired: 0,
-                    fever: 0,
-                    glow,
-                    glowColor,
-                    cuff,
-                  })}
-            </div>
-          </div>
           ${anchors.map((a, i) => this._renderAnchor(a, i, m))}
         </div>
         <div class="body-foot">
@@ -919,29 +918,34 @@ export class HealthCard extends LitElement {
   }
 
   /**
-   * Effective figure style. Default is mannequin, but the liquid-glass card
-   * style defaults to the matching glass figures. `svg` draws the silhouette.
+   * Effective figure set. Default is mannequin; the liquid-glass card style
+   * defaults to the matching glass figures. Unknown values (e.g. the removed
+   * svg style from old configs) fall back to the default.
    */
   private _figStyle(m: MetricConfig): string {
-    if (m.figure_style) return m.figure_style;
+    const sets = ['flat', 'glass', 'mannequin', 'pixar'];
+    if (m.figure_style && sets.includes(m.figure_style)) return m.figure_style;
     return this._cardStyle() === 'glass' ? 'glass' : 'mannequin';
   }
 
-  /** Figure image URL for the current weight state, if any is configured. */
-  private _bodyImage(m: MetricConfig, shape: number): string | undefined {
+  /** Figure image URL for the current weight state. */
+  private _bodyImage(m: MetricConfig, shape: number): string {
     const state = shape < -0.12 ? 'slim' : shape < 0.35 ? 'regular' : 'full';
-    const style = this._figStyle(m);
-    // bundled figure sets take precedence over custom images
-    if (style !== 'svg') {
-      const gender = m.gender ?? 'female';
-      const weight =
-        state === 'slim' ? 'underweight' : state === 'full' ? 'overweight' : 'normal';
-      return `${this._figureBase(m)}${style}/${gender}_${weight}.png`;
+    // user-supplied images win over the bundled sets
+    if (m.images) {
+      const preferred =
+        state === 'slim'
+          ? m.images.slim
+          : state === 'full'
+            ? m.images.full
+            : m.images.regular;
+      const custom = preferred ?? m.images.regular ?? m.images.slim ?? m.images.full;
+      if (custom) return custom;
     }
-    if (!m.images) return undefined;
-    const preferred =
-      state === 'slim' ? m.images.slim : state === 'full' ? m.images.full : m.images.regular;
-    return preferred ?? m.images.regular ?? m.images.slim ?? m.images.full;
+    const gender = m.gender ?? 'female';
+    const weight =
+      state === 'slim' ? 'underweight' : state === 'full' ? 'overweight' : 'normal';
+    return `${this._figureBase(m)}${this._figStyle(m)}/${gender}_${weight}.png`;
   }
 
   /**
@@ -2309,33 +2313,25 @@ export class HealthCard extends LitElement {
       gap: 6px 10px;
     }
 
-    /* ---- body / avatar tile -------------------------------------------
-       the fill vars live on .body-metric because --hc-accent is an inline
-       style on the tile — defined higher up, var() would not resolve */
-    .body-metric {
-      --hc-body-top: color-mix(in srgb, var(--hc-accent) 28%, var(--hc-card-bg));
-      --hc-body-bottom: color-mix(in srgb, var(--hc-accent) 12%, var(--hc-card-bg));
-      --hc-body-stroke: color-mix(in srgb, var(--hc-accent) 26%, transparent);
-    }
+    /* ---- body / avatar tile ------------------------------------------- */
     .bodywrap {
       position: relative;
       width: min(300px, 100%);
       margin: 0 auto;
     }
-    /* fixed-height, playing-card-ish frame. the frame clips the FIGURE (so
-       feet never spill onto the value text) with a soft bottom fade; the
-       energy / fever / eye-shadow glows live outside the frame (bodywrap
-       siblings) so they can spill freely over the edges. zoom magnifies the
-       inner stage in place, keeping the card height constant. */
+    /* fixed-height, playing-card-ish frame. nothing is ever hard-clipped:
+       the figure may spill toward the card edges (top/sides), only the lower
+       edge is covered by a soft gradient overlay so feet melt into the tile
+       before the value text. zoom magnifies the inner stage in place, keeping
+       the card height constant. the upper-body crop is the one exception —
+       cropping is its purpose. */
     .bodyframe {
       position: relative;
       width: 100%;
       aspect-ratio: var(--hc-frame-ar, 0.68);
-      overflow: hidden;
     }
-    .bodyframe.fade {
-      -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent 100%);
-      mask-image: linear-gradient(to bottom, #000 78%, transparent 100%);
+    .bodyframe.crop-upper {
+      overflow: hidden;
     }
     .bodyframe.fade.crop-upper {
       -webkit-mask-image: linear-gradient(to bottom, #000 66%, transparent 100%);
@@ -2344,11 +2340,11 @@ export class HealthCard extends LitElement {
     .bodystage {
       position: absolute;
       inset: 0;
-      transform: translateY(var(--hc-oy, 0%)) scale(var(--hc-zoom, 1));
+      transform: translate(var(--hc-ox, 0%), var(--hc-oy, 0%))
+        scale(var(--hc-zoom, 1));
       transform-origin: 50% 0;
     }
-    /* figure fits the frame (head-aligned to the top); nearly no letterbox
-       since the images and the drawn svg are both portrait */
+    /* figure fits the frame, head-aligned to the top */
     .bodyimg {
       width: 100%;
       height: 100%;
@@ -2356,10 +2352,16 @@ export class HealthCard extends LitElement {
       object-position: 50% 0;
       display: block;
     }
-    .bodyfig {
-      width: 100%;
-      height: 100%;
-      display: block;
+    /* soft gradient overlay: covers the lowest part of the figure (even when
+       it overflows the frame slightly) without clipping top or sides */
+    .body-fade {
+      position: absolute;
+      left: -14%;
+      right: -14%;
+      bottom: -13%;
+      height: 46%;
+      background: linear-gradient(to top, var(--hc-tile-bg) 40%, transparent);
+      pointer-events: none;
     }
     .unblack-defs {
       position: absolute;
@@ -2408,43 +2410,6 @@ export class HealthCard extends LitElement {
         transparent
       );
       filter: blur(1px);
-    }
-    .bodyshape .solid {
-      stroke: var(--hc-body-stroke);
-      stroke-width: 1.5;
-      stroke-linejoin: round;
-    }
-    .bodyshape .flexarm {
-      fill: none;
-      stroke: var(--hc-body-top);
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .bodyshape .flexarm-outline {
-      fill: none;
-      stroke: var(--hc-body-stroke);
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .s-glass .body-metric {
-      --hc-body-top: color-mix(in srgb, var(--hc-accent) 26%, transparent);
-      --hc-body-bottom: color-mix(in srgb, var(--hc-accent) 10%, transparent);
-      --hc-body-stroke: color-mix(in srgb, #fff 55%, transparent);
-    }
-    .s-material .body-metric {
-      --hc-body-top: color-mix(in srgb, var(--hc-accent) 40%, var(--hc-card-bg));
-      --hc-body-bottom: color-mix(in srgb, var(--hc-accent) 22%, var(--hc-card-bg));
-      --hc-body-stroke: transparent;
-    }
-    .s-bubble .body-metric {
-      --hc-body-top: color-mix(in srgb, var(--hc-accent) 32%, var(--hc-card-bg));
-      --hc-body-bottom: color-mix(in srgb, var(--hc-accent) 16%, var(--hc-card-bg));
-      --hc-body-stroke: transparent;
-    }
-    .s-mirror .body-metric {
-      --hc-body-top: rgba(255, 255, 255, 0.12);
-      --hc-body-bottom: rgba(255, 255, 255, 0.06);
-      --hc-body-stroke: #fff;
     }
     /* the anchor is pinned to the point (x/y); the dot sits at that point and
        the chip is offset to one of 8 directions via a translate */

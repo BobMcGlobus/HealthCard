@@ -176,15 +176,14 @@ export interface MetricConfig {
   figure_zoom?: number;
   /** Body metrics: vertical nudge of the figure in percent (negative = up) */
   figure_offset_y?: number;
+  /** Body metrics: horizontal nudge of the figure in percent (negative = left) */
+  figure_offset_x?: number;
   /** Body metrics: value labels pinned to body parts */
   anchors?: BodyAnchor[];
   /** Body metrics: label chip background opacity (0-1, default 1) */
   label_opacity?: number;
-  /**
-   * Body metrics: use a bundled rendered figure set instead of the SVG.
-   * 'svg' (default) draws the built-in silhouette.
-   */
-  figure_style?: 'svg' | 'flat' | 'glass' | 'mannequin' | 'pixar';
+  /** Body metrics: which bundled figure set to render (default mannequin) */
+  figure_style?: 'flat' | 'glass' | 'mannequin' | 'pixar';
   /** Override where the bundled figure images are served from (trailing /) */
   figure_base?: string;
   /**

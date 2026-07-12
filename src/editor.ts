@@ -69,7 +69,8 @@ const LABELS: Record<string, Record<string, string>> = {
     anchor_x: 'X %',
     anchor_y: 'Y %',
     figure_style: 'Figure style',
-    fs_svg: 'Drawn (SVG)',
+    tab_general: 'General',
+    figure_offset_x: 'Horizontal offset %',
     fs_flat: 'Flat silhouette',
     fs_glass: 'Liquid Glass',
     fs_mannequin: 'Mannequin',
@@ -181,7 +182,8 @@ const LABELS: Record<string, Record<string, string>> = {
     anchor_x: 'X %',
     anchor_y: 'Y %',
     figure_style: 'Figur-Stil',
-    fs_svg: 'Gezeichnet (SVG)',
+    tab_general: 'Allgemein',
+    figure_offset_x: 'Horizontaler Versatz %',
     fs_flat: 'Flache Silhouette',
     fs_glass: 'Liquid Glass',
     fs_mannequin: 'Schaufensterpuppe',
@@ -246,6 +248,7 @@ export class HealthCardEditor extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @state() private _config?: HealthCardConfig;
   @state() private _expanded = -1;
+  @state() private _tab = 'general';
 
   public setConfig(config: HealthCardConfig): void {
     this._config = config;
@@ -297,287 +300,296 @@ export class HealthCardEditor extends LitElement {
     ];
   }
 
-  private _metricSchema(m: MetricConfig): unknown[] {
+  /** Tabs shown for a metric — AlertTicker-style hub navigation. */
+  private _metricTabs(type: MetricType): Array<{ id: string; icon: string; label: string }> {
+    const tabs = [
+      { id: 'general', icon: 'mdi:tune-variant', label: this._label('tab_general') },
+      { id: 'display', icon: 'mdi:palette-outline', label: this._label('sec_display') },
+      { id: 'goal', icon: 'mdi:flag-checkered', label: this._label('sec_goal') },
+      { id: 'behavior', icon: 'mdi:gesture-tap', label: this._label('sec_behavior') },
+    ];
+    if (type === 'body')
+      tabs.push({ id: 'body', icon: 'mdi:human', label: this._label('sec_body') });
+    if (type === 'sleep')
+      tabs.push({ id: 'sleep', icon: 'mdi:sleep', label: this._label('sec_phases') });
+    if (type === 'cycle')
+      tabs.push({ id: 'cycle', icon: 'mdi:calendar-heart', label: this._label('sec_cycle') });
+    return tabs;
+  }
+
+  private _metricSchema(m: MetricConfig, tab: string): unknown[] {
     const type = (m.type ?? 'custom') as MetricType;
     const opts = (keys: string[], prefix: string) =>
       keys.map((k) => ({ value: k, label: this._label(`${prefix}_${k}`) }));
     const entitiesEditable = !m.entities || m.entities.every((e) => typeof e === 'string');
-    const section = (
-      title: string,
-      icon: string,
-      schema: unknown[]
-    ): Record<string, unknown> => ({
-      type: 'expandable',
-      name: '',
-      flatten: true,
-      title: this._label(title),
-      icon,
-      schema,
-    });
 
-    return [
-      {
-        type: 'grid',
-        name: '',
-        schema: [
+    switch (tab) {
+      case 'display':
+        return [
           {
-            name: 'type',
-            selector: {
-              select: {
-                mode: 'dropdown',
-                options: METRIC_TYPES.map((k) => ({ value: k, label: t(this.hass, k) })),
+            type: 'grid',
+            name: '',
+            schema: [
+              { name: 'icon', selector: { icon: {} } },
+              {
+                name: 'color',
+                selector: {
+                  select: {
+                    mode: 'dropdown',
+                    custom_value: true,
+                    options: COLOR_NAMES.map((c) => ({ value: c, label: c })),
+                  },
+                },
               },
-            },
+              { name: 'unit', selector: { text: {} } },
+              {
+                name: 'graph',
+                selector: {
+                  select: {
+                    mode: 'dropdown',
+                    options: opts(['line', 'bar', 'progress', 'none'], 'graph'),
+                  },
+                },
+              },
+              { name: 'days', selector: { number: { min: 1, max: 60, mode: 'box' } } },
+              {
+                name: 'precision',
+                selector: { number: { min: 0, max: 3, mode: 'box' } },
+              },
+            ],
           },
-          { name: 'name', selector: { text: {} } },
-        ],
-      },
-      { name: 'entity', selector: { entity: {} } },
-      ...(type === 'blood_pressure'
-        ? [{ name: 'entity2', selector: { entity: {} } }]
-        : []),
-      ...(MULTI_TYPES.includes(type) && entitiesEditable
-        ? [{ name: 'entities', selector: { entity: { multiple: true } } }]
-        : []),
-      ...(type === 'score' &&
-      (!m.breakdown || m.breakdown.every((b) => typeof b === 'string'))
-        ? [{ name: 'breakdown', selector: { entity: { multiple: true } } }]
-        : []),
-      section('sec_display', 'mdi:palette-outline', [
-        {
-          type: 'grid',
-          name: '',
-          schema: [
-            { name: 'icon', selector: { icon: {} } },
-            {
-              name: 'color',
-              selector: {
-                select: {
-                  mode: 'dropdown',
-                  custom_value: true,
-                  options: COLOR_NAMES.map((c) => ({ value: c, label: c })),
-                },
-              },
-            },
-            { name: 'unit', selector: { text: {} } },
-            {
-              name: 'graph',
-              selector: {
-                select: {
-                  mode: 'dropdown',
-                  options: opts(['line', 'bar', 'progress', 'none'], 'graph'),
-                },
-              },
-            },
-            { name: 'days', selector: { number: { min: 1, max: 60, mode: 'box' } } },
-            {
-              name: 'precision',
-              selector: { number: { min: 0, max: 3, mode: 'box' } },
-            },
-          ],
-        },
-        { name: 'label', selector: { text: {} } },
-        { name: 'expanded', selector: { boolean: {} } },
-      ]),
-      section('sec_goal', 'mdi:flag-checkered', [
-        // rows pair same-height components: numbers, then pickers, then selects
-        {
-          type: 'grid',
-          name: '',
-          schema: [
-            { name: 'goal', selector: { number: { mode: 'box', step: 'any' } } },
-            { name: 'start', selector: { number: { mode: 'box', step: 'any' } } },
-          ],
-        },
-        {
-          type: 'grid',
-          name: '',
-          schema: [
-            { name: 'goal_entity', selector: { entity: {} } },
-            { name: 'start_entity', selector: { entity: {} } },
-          ],
-        },
-        {
-          type: 'grid',
-          name: '',
-          schema: [
-            {
-              name: 'goal_type',
-              selector: {
-                select: {
-                  mode: 'dropdown',
-                  options: opts(['atleast', 'atmost'], 'gt'),
-                },
-              },
-            },
-            ...(type === 'score'
-              ? [{ name: 'max', selector: { number: { min: 1, mode: 'box' } } }]
-              : []),
-          ],
-        },
-      ]),
-      section('sec_behavior', 'mdi:gesture-tap', [
-        {
-          type: 'grid',
-          name: '',
-          schema: [
-            {
-              name: 'tap_action',
-              selector: {
-                select: {
-                  mode: 'dropdown',
-                  options: opts(['popup', 'more-info', 'link', 'none'], 'ta'),
-                },
-              },
-            },
-            ...(m.tap_action === 'link'
-              ? [{ name: 'link', selector: { text: {} } }]
-              : []),
-            {
-              name: 'aggregate',
-              selector: {
-                select: {
-                  mode: 'dropdown',
-                  options: opts(['mean', 'min', 'max', 'sum', 'last'], 'agg'),
-                },
-              },
-            },
-            {
-              name: 'trend',
-              selector: {
-                select: {
-                  mode: 'dropdown',
-                  options: opts(['up_good', 'down_good', 'neutral', 'none'], 'trend'),
-                },
-              },
-            },
-          ],
-        },
-        { name: 'secondary', selector: { entity: { multiple: true } } },
-        { name: 'score_entity', selector: { entity: {} } },
-      ]),
-      ...(type === 'body'
-        ? [
-            section('sec_body', 'mdi:human', [
+          { name: 'label', selector: { text: {} } },
+          { name: 'expanded', selector: { boolean: {} } },
+        ];
+
+      case 'goal':
+        return [
+          // rows pair same-height components: numbers, then pickers, then selects
+          {
+            type: 'grid',
+            name: '',
+            schema: [
+              { name: 'goal', selector: { number: { mode: 'box', step: 'any' } } },
+              { name: 'start', selector: { number: { mode: 'box', step: 'any' } } },
+            ],
+          },
+          {
+            type: 'grid',
+            name: '',
+            schema: [
+              { name: 'goal_entity', selector: { entity: {} } },
+              { name: 'start_entity', selector: { entity: {} } },
+            ],
+          },
+          {
+            type: 'grid',
+            name: '',
+            schema: [
               {
-                type: 'grid',
-                name: '',
-                schema: [
-                  {
-                    name: 'gender',
-                    selector: {
-                      select: {
-                        mode: 'dropdown',
-                        options: opts(['female', 'male'], 'gender'),
-                      },
-                    },
+                name: 'goal_type',
+                selector: {
+                  select: {
+                    mode: 'dropdown',
+                    options: opts(['atleast', 'atmost'], 'gt'),
                   },
-                  {
-                    name: 'figure_style',
-                    selector: {
-                      select: {
-                        mode: 'dropdown',
-                        options: opts(
-                          ['svg', 'flat', 'glass', 'mannequin', 'pixar'],
-                          'fs'
-                        ),
-                      },
-                    },
+                },
+              },
+              ...(type === 'score'
+                ? [{ name: 'max', selector: { number: { min: 1, mode: 'box' } } }]
+                : []),
+            ],
+          },
+        ];
+
+      case 'behavior':
+        return [
+          {
+            type: 'grid',
+            name: '',
+            schema: [
+              {
+                name: 'tap_action',
+                selector: {
+                  select: {
+                    mode: 'dropdown',
+                    options: opts(['popup', 'more-info', 'link', 'none'], 'ta'),
                   },
-                  {
-                    name: 'body_crop',
-                    selector: {
-                      select: {
-                        mode: 'dropdown',
-                        options: opts(['full', 'upper'], 'bc'),
-                      },
-                    },
+                },
+              },
+              ...(m.tap_action === 'link'
+                ? [{ name: 'link', selector: { text: {} } }]
+                : []),
+              {
+                name: 'aggregate',
+                selector: {
+                  select: {
+                    mode: 'dropdown',
+                    options: opts(['mean', 'min', 'max', 'sum', 'last'], 'agg'),
                   },
-                  {
-                    name: 'figure_zoom',
-                    selector: {
-                      number: { min: 0.5, max: 3, step: 0.1, mode: 'slider' },
-                    },
-                  },
-                  {
-                    name: 'figure_offset_y',
-                    selector: {
-                      number: { min: -40, max: 40, step: 1, mode: 'slider' },
-                    },
-                  },
-                ],
+                },
               },
               {
-                type: 'grid',
-                name: '',
-                schema: [
-                  { name: 'sleep_entity', selector: { entity: {} } },
-                  { name: 'temperature_entity', selector: { entity: {} } },
-                  {
-                    name: 'tired_below',
-                    selector: { number: { min: 0, max: 100, mode: 'box' } },
+                name: 'trend',
+                selector: {
+                  select: {
+                    mode: 'dropdown',
+                    options: opts(['up_good', 'down_good', 'neutral', 'none'], 'trend'),
                   },
-                  {
-                    name: 'fever_from',
-                    selector: { number: { mode: 'box', step: 'any' } },
+                },
+              },
+            ],
+          },
+          { name: 'secondary', selector: { entity: { multiple: true } } },
+          { name: 'score_entity', selector: { entity: {} } },
+        ];
+
+      case 'body':
+        return [
+          {
+            type: 'grid',
+            name: '',
+            schema: [
+              {
+                name: 'gender',
+                selector: {
+                  select: {
+                    mode: 'dropdown',
+                    options: opts(['female', 'male'], 'gender'),
                   },
-                  { name: 'tired_x', selector: { number: { min: 0, max: 100, mode: 'box' } } },
-                  { name: 'tired_y', selector: { number: { min: 0, max: 100, mode: 'box' } } },
-                  { name: 'fever_x', selector: { number: { min: 0, max: 100, mode: 'box' } } },
-                  { name: 'fever_y', selector: { number: { min: 0, max: 100, mode: 'box' } } },
-                ],
+                },
               },
               {
-                name: 'label_opacity',
-                selector: { number: { min: 0, max: 1, step: 0.05, mode: 'slider' } },
+                name: 'figure_style',
+                selector: {
+                  select: {
+                    mode: 'dropdown',
+                    options: opts(['flat', 'glass', 'mannequin', 'pixar'], 'fs'),
+                  },
+                },
               },
-              { name: 'preview_effects', selector: { boolean: {} } },
-              { name: 'fade_figure', selector: { boolean: {} } },
-            ]),
-          ]
-        : []),
-      ...(type === 'cycle'
-        ? [
-            section('sec_cycle', 'mdi:calendar-heart', [
               {
-                type: 'grid',
-                name: '',
-                schema: [
-                  {
-                    name: 'cycle_length',
-                    selector: { number: { min: 15, max: 60, mode: 'box' } },
+                name: 'body_crop',
+                selector: {
+                  select: {
+                    mode: 'dropdown',
+                    options: opts(['full', 'upper'], 'bc'),
                   },
-                  {
-                    name: 'period_length',
-                    selector: { number: { min: 1, max: 15, mode: 'box' } },
-                  },
-                  {
-                    name: 'ovulation_day',
-                    selector: { number: { min: 1, max: 45, mode: 'box' } },
-                  },
-                ],
+                },
               },
-              { name: 'phase_entity', selector: { entity: {} } },
-            ]),
-          ]
-        : []),
-      ...(type === 'sleep'
-        ? [
-            section('sec_phases', 'mdi:sleep', [
               {
-                type: 'grid',
-                name: '',
-                schema: [
-                  { name: 'phases_deep', selector: { entity: {} } },
-                  { name: 'phases_light', selector: { entity: {} } },
-                  { name: 'phases_rem', selector: { entity: {} } },
-                  { name: 'phases_awake', selector: { entity: {} } },
-                ],
+                name: 'figure_zoom',
+                selector: { number: { min: 0.5, max: 3, step: 0.1, mode: 'slider' } },
               },
-            ]),
-          ]
-        : []),
-    ];
+              {
+                name: 'figure_offset_x',
+                selector: { number: { min: -40, max: 40, step: 1, mode: 'slider' } },
+              },
+              {
+                name: 'figure_offset_y',
+                selector: { number: { min: -40, max: 40, step: 1, mode: 'slider' } },
+              },
+            ],
+          },
+          {
+            type: 'grid',
+            name: '',
+            schema: [
+              { name: 'sleep_entity', selector: { entity: {} } },
+              { name: 'temperature_entity', selector: { entity: {} } },
+              {
+                name: 'tired_below',
+                selector: { number: { min: 0, max: 100, mode: 'box' } },
+              },
+              {
+                name: 'fever_from',
+                selector: { number: { mode: 'box', step: 'any' } },
+              },
+              { name: 'tired_x', selector: { number: { min: 0, max: 100, mode: 'box' } } },
+              { name: 'tired_y', selector: { number: { min: 0, max: 100, mode: 'box' } } },
+              { name: 'fever_x', selector: { number: { min: 0, max: 100, mode: 'box' } } },
+              { name: 'fever_y', selector: { number: { min: 0, max: 100, mode: 'box' } } },
+            ],
+          },
+          {
+            name: 'label_opacity',
+            selector: { number: { min: 0, max: 1, step: 0.05, mode: 'slider' } },
+          },
+          { name: 'preview_effects', selector: { boolean: {} } },
+          { name: 'fade_figure', selector: { boolean: {} } },
+        ];
+
+      case 'cycle':
+        return [
+          {
+            type: 'grid',
+            name: '',
+            schema: [
+              {
+                name: 'cycle_length',
+                selector: { number: { min: 15, max: 60, mode: 'box' } },
+              },
+              {
+                name: 'period_length',
+                selector: { number: { min: 1, max: 15, mode: 'box' } },
+              },
+              {
+                name: 'ovulation_day',
+                selector: { number: { min: 1, max: 45, mode: 'box' } },
+              },
+            ],
+          },
+          { name: 'phase_entity', selector: { entity: {} } },
+        ];
+
+      case 'sleep':
+        return [
+          {
+            type: 'grid',
+            name: '',
+            schema: [
+              { name: 'phases_deep', selector: { entity: {} } },
+              { name: 'phases_light', selector: { entity: {} } },
+              { name: 'phases_rem', selector: { entity: {} } },
+              { name: 'phases_awake', selector: { entity: {} } },
+            ],
+          },
+        ];
+
+      default:
+        // general
+        return [
+          {
+            type: 'grid',
+            name: '',
+            schema: [
+              {
+                name: 'type',
+                selector: {
+                  select: {
+                    mode: 'dropdown',
+                    options: METRIC_TYPES.map((k) => ({
+                      value: k,
+                      label: t(this.hass, k),
+                    })),
+                  },
+                },
+              },
+              { name: 'name', selector: { text: {} } },
+            ],
+          },
+          { name: 'entity', selector: { entity: {} } },
+          ...(type === 'blood_pressure'
+            ? [{ name: 'entity2', selector: { entity: {} } }]
+            : []),
+          ...(MULTI_TYPES.includes(type) && entitiesEditable
+            ? [{ name: 'entities', selector: { entity: { multiple: true } } }]
+            : []),
+          ...(type === 'score' &&
+          (!m.breakdown || m.breakdown.every((b) => typeof b === 'string'))
+            ? [{ name: 'breakdown', selector: { entity: { multiple: true } } }]
+            : []),
+        ];
+    }
   }
 
   protected render(): TemplateResult | typeof nothing {
@@ -615,7 +627,13 @@ export class HealthCardEditor extends LitElement {
     const count = this._config!.metrics.length;
     return html`
       <div class="metric ${open ? 'open' : ''}">
-        <div class="metric-head" @click=${() => (this._expanded = open ? -1 : i)}>
+        <div
+          class="metric-head"
+          @click=${() => {
+            this._expanded = open ? -1 : i;
+            this._tab = 'general';
+          }}
+        >
           <span
             class="chip"
             style="--c:${resolveColor(m.color) ?? resolveColor(preset.color)}"
@@ -650,30 +668,45 @@ export class HealthCardEditor extends LitElement {
             icon=${open ? 'mdi:chevron-up' : 'mdi:chevron-down'}
           ></ha-icon>
         </div>
-        ${open
-          ? html`<div class="metric-body">
-              <ha-form
-                .hass=${this.hass}
-                .data=${{
-                  ...m,
-                  goal: typeof m.goal === 'number' ? m.goal : undefined,
-                  goal_entity: typeof m.goal === 'string' ? m.goal : undefined,
-                  start: typeof m.start === 'number' ? m.start : undefined,
-                  start_entity: typeof m.start === 'string' ? m.start : undefined,
-                  phases_deep: m.phases?.deep,
-                  phases_light: m.phases?.light,
-                  phases_rem: m.phases?.rem,
-                  phases_awake: m.phases?.awake,
-                }}
-                .schema=${this._metricSchema(m)}
-                .computeLabel=${(s: { name: string }) => this._label(s.name)}
-                @value-changed=${(ev: CustomEvent) => this._metricChanged(ev, i)}
-              ></ha-form>
-              ${type === 'body' ? this._renderAnchorEditor(m, i) : nothing}
-            </div>`
-          : nothing}
+        ${open ? this._renderMetricBody(m, i, type) : nothing}
       </div>
     `;
+  }
+
+  private _renderMetricBody(m: MetricConfig, i: number, type: MetricType): TemplateResult {
+    const tabs = this._metricTabs(type);
+    const active = tabs.some((x) => x.id === this._tab) ? this._tab : 'general';
+    return html`<div class="metric-body">
+      <div class="tabs">
+        ${tabs.map(
+          (x) => html`<button
+            class="tab ${active === x.id ? 'active' : ''}"
+            @click=${() => (this._tab = x.id)}
+          >
+            <ha-icon .icon=${x.icon}></ha-icon>
+            <span>${x.label}</span>
+          </button>`
+        )}
+      </div>
+      <ha-form
+        .hass=${this.hass}
+        .data=${{
+          ...m,
+          goal: typeof m.goal === 'number' ? m.goal : undefined,
+          goal_entity: typeof m.goal === 'string' ? m.goal : undefined,
+          start: typeof m.start === 'number' ? m.start : undefined,
+          start_entity: typeof m.start === 'string' ? m.start : undefined,
+          phases_deep: m.phases?.deep,
+          phases_light: m.phases?.light,
+          phases_rem: m.phases?.rem,
+          phases_awake: m.phases?.awake,
+        }}
+        .schema=${this._metricSchema(m, active)}
+        .computeLabel=${(s: { name: string }) => this._label(s.name)}
+        @value-changed=${(ev: CustomEvent) => this._metricChanged(ev, i)}
+      ></ha-form>
+      ${active === 'body' ? this._renderAnchorEditor(m, i) : nothing}
+    </div>`;
   }
 
   private _anchorSchema(): unknown[] {
@@ -927,6 +960,38 @@ export class HealthCardEditor extends LitElement {
     .metric-body {
       padding: 12px;
       border-top: 1px solid var(--divider-color);
+    }
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--divider-color);
+    }
+    .tab {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 11px;
+      border: none;
+      border-radius: 999px;
+      background: none;
+      cursor: pointer;
+      color: var(--secondary-text-color);
+      font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
+    }
+    .tab ha-icon {
+      --mdc-icon-size: 15px;
+    }
+    .tab:hover {
+      background: color-mix(in srgb, var(--primary-text-color) 6%, transparent);
+    }
+    .tab.active {
+      background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+      color: var(--primary-color);
     }
     .icon-btn {
       background: none;
