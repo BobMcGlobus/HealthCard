@@ -2209,7 +2209,7 @@ var Vt = Object.defineProperty, Wt = Object.getOwnPropertyDescriptor, P = (t, e,
     (a = t[o]) && (s = (i ? a(e, r, s) : a(s)) || s);
   return i && s && Vt(e, r, s), s;
 };
-const qt = "0.12.4", Kt = 5 * 60 * 1e3, Yt = 15 * 60 * 1e3, Zt = ["default", "withings", "glass", "material", "bubble", "mirror"], ne = [
+const qt = "0.12.5", Kt = 5 * 60 * 1e3, Yt = 15 * 60 * 1e3, Zt = ["default", "withings", "glass", "material", "bubble", "mirror"], ne = [
   { key: "day", kind: "hour", count: 24 },
   { key: "week", kind: "day", count: 7 },
   { key: "month", kind: "day", count: 30 },
@@ -2710,7 +2710,7 @@ let M = class extends W {
               ></div>` : u}
           <div
             class="bodyframe ${r.body_crop === "upper" ? "crop-upper" : ""} ${m ? "fade" : ""}"
-            style="--hc-frame-ar:${this._frameAspect(r)}"
+            style="--hc-frame-ar:${this._frameAspect(r)};--hc-fade:${r.fade_height ?? (r.body_crop === "upper" ? 150 : 200)}px"
           >
             <div
               class="bodystage"
@@ -2744,10 +2744,6 @@ let M = class extends W {
               </div>` : u}
           ${v.map((y, A) => this._renderAnchor(y, A, r))}
         </div>
-        ${m ? p`<div
-              class="body-fade"
-              style="height:${r.fade_height ?? (r.body_crop === "upper" ? 240 : 190)}px"
-            ></div>` : u}
         <div class="body-foot">
           ${this._renderValue(r, t.type, t.data, i, t.unit, t.precision, !1)}
           ${this._renderStatus(
@@ -3954,11 +3950,11 @@ M.styles = Qe`
     }
 
     /* ---- body / avatar tile -------------------------------------------
-       the tile clips ONLY at its bottom edge: the figure and glows may spill
-       over the top and the sides, but never onto whatever sits below */
+       no clip-path: the figure fades out (mask) before the bottom and the
+       frame clips its own overflow, so nothing reaches the rounded card
+       corners or spills below. the glows may still overflow the top/sides. */
     .body-metric {
       position: relative;
-      clip-path: inset(-80% -80% 0 -80%);
     }
     .bodywrap {
       position: relative;
@@ -3976,6 +3972,12 @@ M.styles = Qe`
       width: 100%;
       aspect-ratio: var(--hc-frame-ar, 0.68);
     }
+    /* the frame clips the figure to its box (so the lower body, which the
+       fade dissolves, and any zoom overflow never reach the rounded card
+       corners or the value label) */
+    .bodyframe {
+      overflow: hidden;
+    }
     .bodystage {
       position: absolute;
       inset: 0;
@@ -3991,38 +3993,27 @@ M.styles = Qe`
       object-position: 50% 0;
       display: block;
     }
-    /* upper crop: full-width figure, the lower body melts into the fade —
-       no hard clipping here either, the fist may rise above the frame */
     .bodyframe.crop-upper .bodyimg {
       height: auto;
       object-fit: unset;
     }
-    /* bottom fade: a full-width band rising from the tile's bottom edge in the
-       solid tile colour (~ the lowest eighth is fully solid, then it fades to
-       transparent going up). spanning the whole tile width means there is no
-       visible side edge, and using the tile colour makes the figure dissolve
-       into the card. it sits above the image (z-index 1) but below the value
-       label, fever/eye-shadow glows and anchors (higher z). */
-    .body-fade {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 1;
-      background: linear-gradient(
-        to top,
-        var(--hc-tile-bg) 0%,
-        var(--hc-tile-bg) 12%,
-        transparent 100%
+    /* bottom fade: the FIGURE ITSELF fades to transparent over the lowest
+       --hc-fade px of the frame (a mask, not a colour overlay). true
+       transparency dissolves the figure into whatever is behind on ANY theme
+       — solid or translucent, no hover dependency, no coloured band, and the
+       rounded card corners show through where the figure has faded out. it is
+       frame-relative (not image-relative) so it never lands too low. */
+    .bodyframe.fade {
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        #000 calc(100% - var(--hc-fade, 200px)),
+        transparent calc(100% - var(--hc-fade, 200px) * 0.18)
       );
-      pointer-events: none;
-    }
-    .body-fever,
-    .body-tired {
-      z-index: 2;
-    }
-    .anchor {
-      z-index: 3;
+      mask-image: linear-gradient(
+        to bottom,
+        #000 calc(100% - var(--hc-fade, 200px)),
+        transparent calc(100% - var(--hc-fade, 200px) * 0.18)
+      );
     }
     .unblack-defs {
       position: absolute;

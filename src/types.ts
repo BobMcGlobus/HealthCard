@@ -170,9 +170,9 @@ export interface MetricConfig {
   preview_effects?: boolean;
   /** Body metrics: fade the bottom edge of the figure (default true) */
   fade_figure?: boolean;
-  /** Body metrics: total height in px of the bottom fade band (solid tile
-   *  colour at the bottom, then a gradient to transparent), rising from the
-   *  tile's bottom edge (default 190; 240 in the upper-body crop) */
+  /** Body metrics: over how many px at the bottom of the figure frame the
+   *  figure fades out to transparent (a mask, theme-proof; default 200;
+   *  150 in the upper-body crop) */
   fade_height?: number;
   /** Body metrics: show the whole figure or only head + torso */
   body_crop?: 'full' | 'upper';
