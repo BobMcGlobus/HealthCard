@@ -32,7 +32,7 @@ import { barChart, cycleRing, lineChart, scoreGraphic } from './charts';
 import type { AxisMark, ChartOpts, CycleSegment } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.12.3';
+const CARD_VERSION = '0.12.4';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
@@ -856,8 +856,7 @@ export class HealthCard extends LitElement {
             class="bodyframe ${m.body_crop === 'upper' ? 'crop-upper' : ''} ${fade
               ? 'fade'
               : ''}"
-            style="--hc-frame-ar:${this._frameAspect(m)};--hc-fade:${m.fade_height ??
-            (m.body_crop === 'upper' ? 62 : 36)}%"
+            style="--hc-frame-ar:${this._frameAspect(m)}"
           >
             <div
               class="bodystage"
@@ -899,6 +898,12 @@ export class HealthCard extends LitElement {
             : nothing}
           ${anchors.map((a, i) => this._renderAnchor(a, i, m))}
         </div>
+        ${fade
+          ? html`<div
+              class="body-fade"
+              style="height:${m.fade_height ?? (m.body_crop === 'upper' ? 240 : 190)}px"
+            ></div>`
+          : nothing}
         <div class="body-foot">
           ${this._renderValue(m, c.type, c.data, primaryState, c.unit, c.precision, false)}
           ${this._renderStatus(
@@ -2319,6 +2324,7 @@ export class HealthCard extends LitElement {
        the tile clips ONLY at its bottom edge: the figure and glows may spill
        over the top and the sides, but never onto whatever sits below */
     .body-metric {
+      position: relative;
       clip-path: inset(-80% -80% 0 -80%);
     }
     .bodywrap {
@@ -2358,21 +2364,32 @@ export class HealthCard extends LitElement {
       height: auto;
       object-fit: unset;
     }
-    /* soft bottom fade, masked on the image itself: true transparency that
-       works on any theme — no colored overlay that could mismatch
-       translucent card backgrounds. the mask travels with the image, so
-       nothing else is covered and top/sides stay untouched. */
-    .bodyframe.fade .bodyimg {
-      -webkit-mask-image: linear-gradient(
-        to bottom,
-        #000 calc(100% - var(--hc-fade, 36%)),
-        transparent calc(100% - var(--hc-fade, 36%) / 3)
+    /* bottom fade: a full-width band rising from the tile's bottom edge in the
+       solid tile colour (~ the lowest eighth is fully solid, then it fades to
+       transparent going up). spanning the whole tile width means there is no
+       visible side edge, and using the tile colour makes the figure dissolve
+       into the card. it sits above the image (z-index 1) but below the value
+       label, fever/eye-shadow glows and anchors (higher z). */
+    .body-fade {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1;
+      background: linear-gradient(
+        to top,
+        var(--hc-tile-bg) 0%,
+        var(--hc-tile-bg) 12%,
+        transparent 100%
       );
-      mask-image: linear-gradient(
-        to bottom,
-        #000 calc(100% - var(--hc-fade, 36%)),
-        transparent calc(100% - var(--hc-fade, 36%) / 3)
-      );
+      pointer-events: none;
+    }
+    .body-fever,
+    .body-tired {
+      z-index: 2;
+    }
+    .anchor {
+      z-index: 3;
     }
     .unblack-defs {
       position: absolute;
@@ -2531,6 +2548,7 @@ export class HealthCard extends LitElement {
       gap: 4px;
       /* lift the value above the (absolutely positioned) figure and fade */
       position: relative;
+      z-index: 4;
     }
     .body-foot .value {
       font-size: 24px;

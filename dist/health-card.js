@@ -1308,7 +1308,7 @@ const It = Object.keys(O), Gt = ["body_composition", "nutrition"], xe = {
     fever_y: "Fever Y %",
     preview_effects: "Preview fever + eye shadows",
     fade_figure: "Fade figure bottom",
-    fade_height: "Fade height %",
+    fade_height: "Fade height (px)",
     label_opacity: "Label opacity",
     sec_cycle: "Cycle",
     cycle_length: "Cycle length (days)",
@@ -1422,7 +1422,7 @@ const It = Object.keys(O), Gt = ["body_composition", "nutrition"], xe = {
     fever_y: "Fieber Y %",
     preview_effects: "Fieber + Augenringe testen",
     fade_figure: "Figur unten ausblenden",
-    fade_height: "Ausblendhöhe %",
+    fade_height: "Ausblendhöhe (px)",
     label_opacity: "Label-Deckkraft",
     sec_cycle: "Zyklus",
     cycle_length: "Zykluslänge (Tage)",
@@ -1710,7 +1710,7 @@ let U = class extends W {
           { name: "fade_figure", selector: { boolean: {} } },
           {
             name: "fade_height",
-            selector: { number: { min: 5, max: 90, step: 1, mode: "slider" } }
+            selector: { number: { min: 0, max: 400, step: 5, mode: "slider" } }
           }
         ];
       case "cycle":
@@ -2209,7 +2209,7 @@ var Vt = Object.defineProperty, Wt = Object.getOwnPropertyDescriptor, P = (t, e,
     (a = t[o]) && (s = (i ? a(e, r, s) : a(s)) || s);
   return i && s && Vt(e, r, s), s;
 };
-const qt = "0.12.3", Kt = 5 * 60 * 1e3, Yt = 15 * 60 * 1e3, Zt = ["default", "withings", "glass", "material", "bubble", "mirror"], ne = [
+const qt = "0.12.4", Kt = 5 * 60 * 1e3, Yt = 15 * 60 * 1e3, Zt = ["default", "withings", "glass", "material", "bubble", "mirror"], ne = [
   { key: "day", kind: "hour", count: 24 },
   { key: "week", kind: "day", count: 7 },
   { key: "month", kind: "day", count: 30 },
@@ -2710,7 +2710,7 @@ let M = class extends W {
               ></div>` : u}
           <div
             class="bodyframe ${r.body_crop === "upper" ? "crop-upper" : ""} ${m ? "fade" : ""}"
-            style="--hc-frame-ar:${this._frameAspect(r)};--hc-fade:${r.fade_height ?? (r.body_crop === "upper" ? 62 : 36)}%"
+            style="--hc-frame-ar:${this._frameAspect(r)}"
           >
             <div
               class="bodystage"
@@ -2744,6 +2744,10 @@ let M = class extends W {
               </div>` : u}
           ${v.map((y, A) => this._renderAnchor(y, A, r))}
         </div>
+        ${m ? p`<div
+              class="body-fade"
+              style="height:${r.fade_height ?? (r.body_crop === "upper" ? 240 : 190)}px"
+            ></div>` : u}
         <div class="body-foot">
           ${this._renderValue(r, t.type, t.data, i, t.unit, t.precision, !1)}
           ${this._renderStatus(
@@ -3953,6 +3957,7 @@ M.styles = Qe`
        the tile clips ONLY at its bottom edge: the figure and glows may spill
        over the top and the sides, but never onto whatever sits below */
     .body-metric {
+      position: relative;
       clip-path: inset(-80% -80% 0 -80%);
     }
     .bodywrap {
@@ -3992,21 +3997,32 @@ M.styles = Qe`
       height: auto;
       object-fit: unset;
     }
-    /* soft bottom fade, masked on the image itself: true transparency that
-       works on any theme — no colored overlay that could mismatch
-       translucent card backgrounds. the mask travels with the image, so
-       nothing else is covered and top/sides stay untouched. */
-    .bodyframe.fade .bodyimg {
-      -webkit-mask-image: linear-gradient(
-        to bottom,
-        #000 calc(100% - var(--hc-fade, 36%)),
-        transparent calc(100% - var(--hc-fade, 36%) / 3)
+    /* bottom fade: a full-width band rising from the tile's bottom edge in the
+       solid tile colour (~ the lowest eighth is fully solid, then it fades to
+       transparent going up). spanning the whole tile width means there is no
+       visible side edge, and using the tile colour makes the figure dissolve
+       into the card. it sits above the image (z-index 1) but below the value
+       label, fever/eye-shadow glows and anchors (higher z). */
+    .body-fade {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1;
+      background: linear-gradient(
+        to top,
+        var(--hc-tile-bg) 0%,
+        var(--hc-tile-bg) 12%,
+        transparent 100%
       );
-      mask-image: linear-gradient(
-        to bottom,
-        #000 calc(100% - var(--hc-fade, 36%)),
-        transparent calc(100% - var(--hc-fade, 36%) / 3)
-      );
+      pointer-events: none;
+    }
+    .body-fever,
+    .body-tired {
+      z-index: 2;
+    }
+    .anchor {
+      z-index: 3;
     }
     .unblack-defs {
       position: absolute;
@@ -4165,6 +4181,7 @@ M.styles = Qe`
       gap: 4px;
       /* lift the value above the (absolutely positioned) figure and fade */
       position: relative;
+      z-index: 4;
     }
     .body-foot .value {
       font-size: 24px;
