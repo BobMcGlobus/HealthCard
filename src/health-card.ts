@@ -32,7 +32,7 @@ import { barChart, cycleRing, lineChart, scoreGraphic } from './charts';
 import type { AxisMark, ChartOpts, CycleSegment } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.12.2';
+const CARD_VERSION = '0.12.3';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
@@ -856,7 +856,8 @@ export class HealthCard extends LitElement {
             class="bodyframe ${m.body_crop === 'upper' ? 'crop-upper' : ''} ${fade
               ? 'fade'
               : ''}"
-            style="--hc-frame-ar:${this._frameAspect(m)}"
+            style="--hc-frame-ar:${this._frameAspect(m)};--hc-fade:${m.fade_height ??
+            (m.body_crop === 'upper' ? 62 : 36)}%"
           >
             <div
               class="bodystage"
@@ -2362,13 +2363,16 @@ export class HealthCard extends LitElement {
        translucent card backgrounds. the mask travels with the image, so
        nothing else is covered and top/sides stay untouched. */
     .bodyframe.fade .bodyimg {
-      -webkit-mask-image: linear-gradient(to bottom, #000 76%, transparent 97%);
-      mask-image: linear-gradient(to bottom, #000 76%, transparent 97%);
-    }
-    /* upper crop: the image box is the full figure — fade out below the torso */
-    .bodyframe.fade.crop-upper .bodyimg {
-      -webkit-mask-image: linear-gradient(to bottom, #000 32%, transparent 52%);
-      mask-image: linear-gradient(to bottom, #000 32%, transparent 52%);
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        #000 calc(100% - var(--hc-fade, 36%)),
+        transparent calc(100% - var(--hc-fade, 36%) / 3)
+      );
+      mask-image: linear-gradient(
+        to bottom,
+        #000 calc(100% - var(--hc-fade, 36%)),
+        transparent calc(100% - var(--hc-fade, 36%) / 3)
+      );
     }
     .unblack-defs {
       position: absolute;

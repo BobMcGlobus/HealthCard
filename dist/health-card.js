@@ -1308,6 +1308,7 @@ const It = Object.keys(O), Gt = ["body_composition", "nutrition"], xe = {
     fever_y: "Fever Y %",
     preview_effects: "Preview fever + eye shadows",
     fade_figure: "Fade figure bottom",
+    fade_height: "Fade height %",
     label_opacity: "Label opacity",
     sec_cycle: "Cycle",
     cycle_length: "Cycle length (days)",
@@ -1421,6 +1422,7 @@ const It = Object.keys(O), Gt = ["body_composition", "nutrition"], xe = {
     fever_y: "Fieber Y %",
     preview_effects: "Fieber + Augenringe testen",
     fade_figure: "Figur unten ausblenden",
+    fade_height: "Ausblendhöhe %",
     label_opacity: "Label-Deckkraft",
     sec_cycle: "Zyklus",
     cycle_length: "Zykluslänge (Tage)",
@@ -1705,7 +1707,11 @@ let U = class extends W {
             selector: { number: { min: 0, max: 1, step: 0.05, mode: "slider" } }
           },
           { name: "preview_effects", selector: { boolean: {} } },
-          { name: "fade_figure", selector: { boolean: {} } }
+          { name: "fade_figure", selector: { boolean: {} } },
+          {
+            name: "fade_height",
+            selector: { number: { min: 5, max: 90, step: 1, mode: "slider" } }
+          }
         ];
       case "cycle":
         return [
@@ -2203,7 +2209,7 @@ var Vt = Object.defineProperty, Wt = Object.getOwnPropertyDescriptor, P = (t, e,
     (a = t[o]) && (s = (i ? a(e, r, s) : a(s)) || s);
   return i && s && Vt(e, r, s), s;
 };
-const qt = "0.12.2", Kt = 5 * 60 * 1e3, Yt = 15 * 60 * 1e3, Zt = ["default", "withings", "glass", "material", "bubble", "mirror"], ne = [
+const qt = "0.12.3", Kt = 5 * 60 * 1e3, Yt = 15 * 60 * 1e3, Zt = ["default", "withings", "glass", "material", "bubble", "mirror"], ne = [
   { key: "day", kind: "hour", count: 24 },
   { key: "week", kind: "day", count: 7 },
   { key: "month", kind: "day", count: 30 },
@@ -2704,7 +2710,7 @@ let M = class extends W {
               ></div>` : u}
           <div
             class="bodyframe ${r.body_crop === "upper" ? "crop-upper" : ""} ${m ? "fade" : ""}"
-            style="--hc-frame-ar:${this._frameAspect(r)}"
+            style="--hc-frame-ar:${this._frameAspect(r)};--hc-fade:${r.fade_height ?? (r.body_crop === "upper" ? 62 : 36)}%"
           >
             <div
               class="bodystage"
@@ -3991,13 +3997,16 @@ M.styles = Qe`
        translucent card backgrounds. the mask travels with the image, so
        nothing else is covered and top/sides stay untouched. */
     .bodyframe.fade .bodyimg {
-      -webkit-mask-image: linear-gradient(to bottom, #000 76%, transparent 97%);
-      mask-image: linear-gradient(to bottom, #000 76%, transparent 97%);
-    }
-    /* upper crop: the image box is the full figure — fade out below the torso */
-    .bodyframe.fade.crop-upper .bodyimg {
-      -webkit-mask-image: linear-gradient(to bottom, #000 32%, transparent 52%);
-      mask-image: linear-gradient(to bottom, #000 32%, transparent 52%);
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        #000 calc(100% - var(--hc-fade, 36%)),
+        transparent calc(100% - var(--hc-fade, 36%) / 3)
+      );
+      mask-image: linear-gradient(
+        to bottom,
+        #000 calc(100% - var(--hc-fade, 36%)),
+        transparent calc(100% - var(--hc-fade, 36%) / 3)
+      );
     }
     .unblack-defs {
       position: absolute;

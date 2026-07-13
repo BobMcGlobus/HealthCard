@@ -92,6 +92,7 @@ const LABELS: Record<string, Record<string, string>> = {
     fever_y: 'Fever Y %',
     preview_effects: 'Preview fever + eye shadows',
     fade_figure: 'Fade figure bottom',
+    fade_height: 'Fade height %',
     label_opacity: 'Label opacity',
     sec_cycle: 'Cycle',
     cycle_length: 'Cycle length (days)',
@@ -205,6 +206,7 @@ const LABELS: Record<string, Record<string, string>> = {
     fever_y: 'Fieber Y %',
     preview_effects: 'Fieber + Augenringe testen',
     fade_figure: 'Figur unten ausblenden',
+    fade_height: 'Ausblendhöhe %',
     label_opacity: 'Label-Deckkraft',
     sec_cycle: 'Zyklus',
     cycle_length: 'Zykluslänge (Tage)',
@@ -516,6 +518,10 @@ export class HealthCardEditor extends LitElement {
           },
           { name: 'preview_effects', selector: { boolean: {} } },
           { name: 'fade_figure', selector: { boolean: {} } },
+          {
+            name: 'fade_height',
+            selector: { number: { min: 5, max: 90, step: 1, mode: 'slider' } },
+          },
         ];
 
       case 'cycle':

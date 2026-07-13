@@ -170,6 +170,9 @@ export interface MetricConfig {
   preview_effects?: boolean;
   /** Body metrics: fade the bottom edge of the figure (default true) */
   fade_figure?: boolean;
+  /** Body metrics: how much of the figure fades out at the bottom, in percent
+   *  of the image height (default 36; 62 in the upper-body crop) */
+  fade_height?: number;
   /** Body metrics: show the whole figure or only head + torso */
   body_crop?: 'full' | 'upper';
   /** Body metrics: zoom factor for the figure (default 1) */
