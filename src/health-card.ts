@@ -32,7 +32,7 @@ import { barChart, cycleRing, lineChart, scoreGraphic } from './charts';
 import type { AxisMark, ChartOpts, CycleSegment } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.12.1';
+const CARD_VERSION = '0.12.2';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
@@ -880,7 +880,6 @@ export class HealthCard extends LitElement {
                 alt=""
               />
             </div>
-            ${fade ? html`<div class="body-fade"></div>` : nothing}
           </div>
           ${fever > 0
             ? html`<div
@@ -2358,21 +2357,18 @@ export class HealthCard extends LitElement {
       height: auto;
       object-fit: unset;
     }
-    /* soft gradient overlay: covers the lowest part of the figure (even when
-       it overflows the frame) without clipping top or sides */
-    .body-fade {
-      position: absolute;
-      left: -14%;
-      right: -14%;
-      bottom: -13%;
-      height: 46%;
-      background: linear-gradient(to top, var(--hc-tile-bg) 40%, transparent);
-      pointer-events: none;
+    /* soft bottom fade, masked on the image itself: true transparency that
+       works on any theme — no colored overlay that could mismatch
+       translucent card backgrounds. the mask travels with the image, so
+       nothing else is covered and top/sides stay untouched. */
+    .bodyframe.fade .bodyimg {
+      -webkit-mask-image: linear-gradient(to bottom, #000 76%, transparent 97%);
+      mask-image: linear-gradient(to bottom, #000 76%, transparent 97%);
     }
-    .bodyframe.crop-upper .body-fade {
-      bottom: -75%;
-      height: 130%;
-      background: linear-gradient(to top, var(--hc-tile-bg) 68%, transparent);
+    /* upper crop: the image box is the full figure — fade out below the torso */
+    .bodyframe.fade.crop-upper .bodyimg {
+      -webkit-mask-image: linear-gradient(to bottom, #000 32%, transparent 52%);
+      mask-image: linear-gradient(to bottom, #000 32%, transparent 52%);
     }
     .unblack-defs {
       position: absolute;
