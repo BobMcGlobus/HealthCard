@@ -2209,7 +2209,7 @@ var Vt = Object.defineProperty, Wt = Object.getOwnPropertyDescriptor, P = (t, e,
     (a = t[o]) && (s = (i ? a(e, r, s) : a(s)) || s);
   return i && s && Vt(e, r, s), s;
 };
-const qt = "0.13.0", Kt = 5 * 60 * 1e3, Yt = 15 * 60 * 1e3, Zt = ["default", "withings", "glass", "material", "bubble", "mirror"], ne = [
+const qt = "0.13.1", Kt = 5 * 60 * 1e3, Yt = 15 * 60 * 1e3, Zt = ["default", "withings", "glass", "material", "bubble", "mirror"], ne = [
   { key: "day", kind: "hour", count: 24 },
   { key: "week", kind: "day", count: 7 },
   { key: "month", kind: "day", count: 30 },
@@ -3955,10 +3955,12 @@ M.styles = Qe`
        corners or spills below. the glows may still overflow the top/sides. */
     .body-metric {
       position: relative;
+      overflow: clip;
     }
     .bodywrap {
       position: relative;
-      width: min(300px, 100%);
+      min-width: 300px;
+      width: 100%;
       margin: 0 auto;
     }
     /* fixed-height, playing-card-ish frame. nothing is ever hard-clipped:
@@ -3976,7 +3978,7 @@ M.styles = Qe`
        fade dissolves, and any zoom overflow never reach the rounded card
        corners or the value label) */
     .bodyframe {
-      overflow: hidden;
+      overflow: visible;
     }
     .bodystage {
       position: absolute;
@@ -3997,24 +3999,7 @@ M.styles = Qe`
       height: auto;
       object-fit: unset;
     }
-    /* bottom fade: the FIGURE ITSELF fades to transparent over the lowest
-       --hc-fade px of the frame (a mask, not a colour overlay). true
-       transparency dissolves the figure into whatever is behind on ANY theme
-       — solid or translucent, no hover dependency, no coloured band, and the
-       rounded card corners show through where the figure has faded out. it is
-       frame-relative (not image-relative) so it never lands too low. */
-    .bodyframe.fade {
-      -webkit-mask-image: linear-gradient(
-        to bottom,
-        #000 calc(100% - var(--hc-fade, 200px)),
-        transparent calc(100% - var(--hc-fade, 200px) * 0.18)
-      );
-      mask-image: linear-gradient(
-        to bottom,
-        #000 calc(100% - var(--hc-fade, 200px)),
-        transparent calc(100% - var(--hc-fade, 200px) * 0.18)
-      );
-    }
+
     .unblack-defs {
       position: absolute;
       width: 0;
@@ -4173,6 +4158,9 @@ M.styles = Qe`
       /* lift the value above the (absolutely positioned) figure and fade */
       position: relative;
       z-index: 4;
+      margin: -14px -16px;
+      padding: 41px 16px 14px 16px;
+      background: linear-gradient(0deg, var(--hc-tile-bg), transparent);
     }
     .body-foot .value {
       font-size: 24px;

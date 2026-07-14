@@ -32,7 +32,7 @@ import { barChart, cycleRing, lineChart, scoreGraphic } from './charts';
 import type { AxisMark, ChartOpts, CycleSegment } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.13.0';
+const CARD_VERSION = '0.13.1';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
@@ -2321,10 +2321,12 @@ export class HealthCard extends LitElement {
        corners or spills below. the glows may still overflow the top/sides. */
     .body-metric {
       position: relative;
+      overflow: clip;
     }
     .bodywrap {
       position: relative;
-      width: min(300px, 100%);
+      min-width: 300px;
+      width: 100%;
       margin: 0 auto;
     }
     /* fixed-height, playing-card-ish frame. nothing is ever hard-clipped:
@@ -2342,7 +2344,7 @@ export class HealthCard extends LitElement {
        fade dissolves, and any zoom overflow never reach the rounded card
        corners or the value label) */
     .bodyframe {
-      overflow: hidden;
+      overflow: visible;
     }
     .bodystage {
       position: absolute;
@@ -2363,24 +2365,7 @@ export class HealthCard extends LitElement {
       height: auto;
       object-fit: unset;
     }
-    /* bottom fade: the FIGURE ITSELF fades to transparent over the lowest
-       --hc-fade px of the frame (a mask, not a colour overlay). true
-       transparency dissolves the figure into whatever is behind on ANY theme
-       — solid or translucent, no hover dependency, no coloured band, and the
-       rounded card corners show through where the figure has faded out. it is
-       frame-relative (not image-relative) so it never lands too low. */
-    .bodyframe.fade {
-      -webkit-mask-image: linear-gradient(
-        to bottom,
-        #000 calc(100% - var(--hc-fade, 200px)),
-        transparent calc(100% - var(--hc-fade, 200px) * 0.18)
-      );
-      mask-image: linear-gradient(
-        to bottom,
-        #000 calc(100% - var(--hc-fade, 200px)),
-        transparent calc(100% - var(--hc-fade, 200px) * 0.18)
-      );
-    }
+
     .unblack-defs {
       position: absolute;
       width: 0;
@@ -2539,6 +2524,9 @@ export class HealthCard extends LitElement {
       /* lift the value above the (absolutely positioned) figure and fade */
       position: relative;
       z-index: 4;
+      margin: -14px -16px;
+      padding: 41px 16px 14px 16px;
+      background: linear-gradient(0deg, var(--hc-tile-bg), transparent);
     }
     .body-foot .value {
       font-size: 24px;
