@@ -2209,7 +2209,7 @@ var Vt = Object.defineProperty, Wt = Object.getOwnPropertyDescriptor, P = (t, e,
     (a = t[o]) && (s = (i ? a(e, r, s) : a(s)) || s);
   return i && s && Vt(e, r, s), s;
 };
-const qt = "0.12.5", Kt = 5 * 60 * 1e3, Yt = 15 * 60 * 1e3, Zt = ["default", "withings", "glass", "material", "bubble", "mirror"], ne = [
+const qt = "0.13.0", Kt = 5 * 60 * 1e3, Yt = 15 * 60 * 1e3, Zt = ["default", "withings", "glass", "material", "bubble", "mirror"], ne = [
   { key: "day", kind: "hour", count: 24 },
   { key: "week", kind: "day", count: 7 },
   { key: "month", kind: "day", count: 30 },

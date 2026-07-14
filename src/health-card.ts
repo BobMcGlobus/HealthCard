@@ -32,7 +32,7 @@ import { barChart, cycleRing, lineChart, scoreGraphic } from './charts';
 import type { AxisMark, ChartOpts, CycleSegment } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.12.5';
+const CARD_VERSION = '0.13.0';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
