@@ -32,7 +32,7 @@ import { barChart, cycleRing, lineChart, scoreGraphic } from './charts';
 import type { AxisMark, ChartOpts, CycleSegment } from './charts';
 import './editor';
 
-const CARD_VERSION = '0.13.1';
+const CARD_VERSION = '0.13.2';
 
 /** Minimum time between history refetches triggered by state changes */
 const REFETCH_MIN_MS = 5 * 60 * 1000;
@@ -1001,9 +1001,10 @@ export class HealthCard extends LitElement {
         : st.state;
     }
     const op = m.label_opacity ?? 1;
+    const sz = m.label_size ?? 1;
     return html`<div
       class="anchor dot-${dir}"
-      style="left:${x}%;top:${y}%;--ac:${color};--hc-label-op:${op}"
+      style="left:${x}%;top:${y}%;--ac:${color};--hc-label-op:${op};--hc-label-size:${sz}"
     >
       <span class="anchor-dot"></span>
       <div class="anchor-chip">
@@ -2438,13 +2439,15 @@ export class HealthCard extends LitElement {
       position: absolute;
       top: 0;
       left: 0;
+      /* one variable scales the whole chip: text (via em) and padding */
+      font-size: calc(11px * var(--hc-label-size, 1));
       background: color-mix(
         in srgb,
         var(--hc-card-bg) calc(var(--hc-label-op, 1) * 100%),
         transparent
       );
-      border-radius: 10px;
-      padding: 4px 9px;
+      border-radius: 0.9em;
+      padding: 0.36em 0.82em;
       box-shadow: 0 2px 10px rgba(0, 0, 0, calc(var(--hc-label-op, 1) * 0.16));
       display: flex;
       flex-direction: column;
@@ -2499,12 +2502,14 @@ export class HealthCard extends LitElement {
       border-radius: 14px;
     }
     .anchor-name {
-      font-size: 10px;
+      font-size: 0.85em;
       font-weight: 600;
-      color: var(--secondary-text-color);
+      /* high-contrast on any theme; the old secondary-text-color was too faint
+         on dark and glass chips */
+      color: color-mix(in srgb, var(--primary-text-color) 82%, transparent);
     }
     .anchor-val {
-      font-size: 12px;
+      font-size: 1.05em;
       font-weight: 700;
       color: var(--primary-text-color);
     }
@@ -2518,6 +2523,7 @@ export class HealthCard extends LitElement {
     }
     .body-foot {
       display: flex;
+      flex-grow: 1;
       flex-direction: column;
       align-items: center;
       gap: 4px;

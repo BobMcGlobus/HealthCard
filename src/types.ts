@@ -186,6 +186,8 @@ export interface MetricConfig {
   anchors?: BodyAnchor[];
   /** Body metrics: label chip background opacity (0-1, default 1) */
   label_opacity?: number;
+  /** Body metrics: label text-size multiplier (default 1) */
+  label_size?: number;
   /** Body metrics: which bundled figure set to render (default mannequin) */
   figure_style?: 'flat' | 'glass' | 'mannequin' | 'pixar';
   /** Override where the bundled figure images are served from (trailing /) */

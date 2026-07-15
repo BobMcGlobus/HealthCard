@@ -94,6 +94,7 @@ const LABELS: Record<string, Record<string, string>> = {
     fade_figure: 'Fade figure bottom',
     fade_height: 'Fade height (px)',
     label_opacity: 'Label opacity',
+    label_size: 'Label size',
     sec_cycle: 'Cycle',
     cycle_length: 'Cycle length (days)',
     period_length: 'Period length (days)',
@@ -208,6 +209,7 @@ const LABELS: Record<string, Record<string, string>> = {
     fade_figure: 'Figur unten ausblenden',
     fade_height: 'Ausblendhöhe (px)',
     label_opacity: 'Label-Deckkraft',
+    label_size: 'Label-Größe',
     sec_cycle: 'Zyklus',
     cycle_length: 'Zykluslänge (Tage)',
     period_length: 'Periodenlänge (Tage)',
@@ -513,8 +515,18 @@ export class HealthCardEditor extends LitElement {
             ],
           },
           {
-            name: 'label_opacity',
-            selector: { number: { min: 0, max: 1, step: 0.05, mode: 'slider' } },
+            type: 'grid',
+            name: '',
+            schema: [
+              {
+                name: 'label_opacity',
+                selector: { number: { min: 0, max: 1, step: 0.05, mode: 'slider' } },
+              },
+              {
+                name: 'label_size',
+                selector: { number: { min: 0.6, max: 2, step: 0.1, mode: 'slider' } },
+              },
+            ],
           },
           { name: 'preview_effects', selector: { boolean: {} } },
           { name: 'fade_figure', selector: { boolean: {} } },
